@@ -104,6 +104,10 @@ class AdGuardCLI:
             or "has been stopped" in combined
             or "stopped" in combined
         ):
+            # adguard-cli may lack a PID file when managed by systemd → verify
+            fallback = self._systemctl_fallback(out)
+            if fallback.status == AdGuardStatus.ACTIVE:
+                return StatusResult(AdGuardStatus.ACTIVE, out, out, proxy_port, filtering_enabled)
             return StatusResult(AdGuardStatus.INACTIVE, out, out, proxy_port, filtering_enabled)
 
         # Ambiguous output → fallback to systemctl
