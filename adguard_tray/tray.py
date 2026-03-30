@@ -214,6 +214,10 @@ class AdGuardTray(QSystemTrayIcon):
 
         menu.addSeparator()
 
+        act_proxy_config = QAction(_t("AdGuard Configuration…"))
+        act_proxy_config.triggered.connect(self._show_proxy_config)
+        menu.addAction(act_proxy_config)
+
         act_settings = QAction(_t("Settings…"))
         act_settings.triggered.connect(self._show_settings)
         menu.addAction(act_settings)
@@ -460,6 +464,15 @@ class AdGuardTray(QSystemTrayIcon):
                 self._act_autostart.setChecked(True)
 
     # ── Dialogs ────────────────────────────────────────────────────────────
+
+    def _show_proxy_config(self) -> None:
+        from .proxy_config_dialog import ProxyConfigDialog
+        dlg = ProxyConfigDialog()
+        if dlg.exec():
+            if self.config.notifications_enabled:
+                notify("AdGuard Tray",
+                       _t("Configuration saved. Restart AdGuard to apply changes."),
+                       tray=self)
 
     def _show_settings(self) -> None:
         from .settings_dialog import SettingsDialog

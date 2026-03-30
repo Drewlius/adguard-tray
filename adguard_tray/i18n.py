@@ -208,6 +208,248 @@ _DE: dict[str, str] = {
     # ── userscripts_dialog.py ────────────────────────────────────────────
     "AdGuard Tray – Userscripts":       "AdGuard Tray – Userscripts",
 
+    # ── proxy_config_dialog.py ───────────────────────────────────────────
+    "AdGuard CLI – Configuration":      "AdGuard CLI – Konfiguration",
+    "Could not load proxy.yaml.\nPath: {}":
+        "proxy.yaml konnte nicht geladen werden.\nPfad: {}",
+    "Proxy":                            "Proxy",
+    "HTTPS":                            "HTTPS",
+    "DNS":                              "DNS",
+    "Stealth Mode":                     "Tarnmodus",
+    "Apps":                             "Apps",
+    "Security":                         "Sicherheit",
+    "<small><b>Note:</b> Changes require an AdGuard CLI restart to take effect.</small>":
+        "<small><b>Hinweis:</b> Änderungen erfordern einen Neustart von AdGuard CLI.</small>",
+    "Proxy Mode":                       "Proxy-Modus",
+    "Mode:":                            "Modus:",
+    "auto: AdGuard redirects app traffic into itself via iptables\n"
+    "manual: Only listens on the configured proxy ports (SOCKS5/HTTP)":
+        "auto: AdGuard leitet App-Traffic via iptables um\n"
+        "manual: Lauscht nur auf den konfigurierten Proxy-Ports (SOCKS5/HTTP)",
+    "Filtered ports:":                  "Gefilterte Ports:",
+    "Port ranges intercepted in auto mode.\n"
+    "Format: 80:5221,5300:49151 (range) or 80,443,8080 (individual)\n"
+    "Only applies when proxy mode is 'auto'.":
+        "Port-Bereiche die im Auto-Modus abgefangen werden.\n"
+        "Format: 80:5221,5300:49151 (Bereich) oder 80,443,8080 (einzeln)\n"
+        "Gilt nur im Proxy-Modus 'auto'.",
+    "Manual Proxy Ports":               "Manuelle Proxy-Ports",
+    "SOCKS5 port:":                     "SOCKS5-Port:",
+    "SOCKS5 proxy port for manual mode.\nSet to -1 to disable.":
+        "SOCKS5-Proxy-Port für den manuellen Modus.\n-1 zum Deaktivieren.",
+    "HTTP port:":                       "HTTP-Port:",
+    "HTTP proxy port for manual mode.\nSet to -1 to disable.":
+        "HTTP-Proxy-Port für den manuellen Modus.\n-1 zum Deaktivieren.",
+    "Listen address:":                  "Lausch-Adresse:",
+    "Address the proxy listens on.\n"
+    "127.0.0.1 = local only. 0.0.0.0 = all interfaces (requires auth).":
+        "Adresse auf der der Proxy lauscht.\n"
+        "127.0.0.1 = nur lokal. 0.0.0.0 = alle Interfaces (erfordert Authentifizierung).",
+    "Worker threads:":                  "Worker-Threads:",
+    "Number of proxy worker threads.":  "Anzahl der Proxy-Worker-Threads.",
+    "HTTPS Filtering":                  "HTTPS-Filterung",
+    "Enable HTTPS filtering":           "HTTPS-Filterung aktivieren",
+    "Decrypt and filter HTTPS traffic.\n"
+    "Required for high-quality ad blocking on encrypted sites.\n"
+    "Requires a trusted root certificate installed on the system.":
+        "HTTPS-Traffic entschlüsseln und filtern.\n"
+        "Erforderlich für effektive Werbeblockierung auf verschlüsselten Seiten.\n"
+        "Benötigt ein installiertes Root-Zertifikat auf dem System.",
+    "Enable TLS 1.3":                   "TLS 1.3 aktivieren",
+    "Enable TLS 1.3 support for filtered connections.":
+        "TLS 1.3 für gefilterte Verbindungen aktivieren.",
+    "Filter HTTP/3 (QUIC) – experimental":
+        "HTTP/3 (QUIC) filtern – experimentell",
+    "Filter HTTP/3 (QUIC) traffic.\nExperimental – may cause issues with some sites.":
+        "HTTP/3 (QUIC)-Traffic filtern.\nExperimentell – kann bei manchen Seiten Probleme verursachen.",
+    "OCSP certificate checks":          "OCSP-Zertifikatsprüfung",
+    "Check certificate revocation status via OCSP.\n"
+    "Improves security but may slightly increase connection latency.":
+        "Zertifikatswiderruf per OCSP prüfen.\n"
+        "Verbessert die Sicherheit, kann aber die Verbindungslatenz leicht erhöhen.",
+    "Enforce Certificate Transparency": "Certificate Transparency erzwingen",
+    "Enforce Certificate Transparency timestamp checks.\n"
+    "Similar to Chrome's built-in CT policy.":
+        "Certificate-Transparency-Prüfungen erzwingen.\n"
+        "Ähnlich der CT-Richtlinie von Chrome.",
+    "Filter EV certificate sites":      "EV-Zertifikat-Seiten filtern",
+    "By default, sites with Extended Validation certificates are not filtered.\n"
+    "Enable this to filter them as well (e.g. banking sites).":
+        "Standardmäßig werden Seiten mit EV-Zertifikaten nicht gefiltert.\n"
+        "Aktivieren um auch diese zu filtern (z.B. Banking-Seiten).",
+    "Encrypted Client Hello (ECH)":     "Encrypted Client Hello (ECH)",
+    "Enable ECH for better privacy.\nRequires DNS filtering to be enabled.":
+        "ECH für besseren Datenschutz aktivieren.\nErfordert aktivierte DNS-Filterung.",
+    "Secure DNS Filtering":             "Sichere DNS-Filterung",
+    "off: No secure DNS filtering\n"
+    "transparent: Filter DoH/DoT inline without changing destination\n"
+    "redirect: Redirect all secure DNS to the local DNS proxy":
+        "off: Keine sichere DNS-Filterung\n"
+        "transparent: DoH/DoT inline filtern ohne Ziel zu ändern\n"
+        "redirect: Alle sichere DNS-Anfragen zum lokalen DNS-Proxy umleiten",
+    "DNS Filtering":                    "DNS-Filterung",
+    "Enable DNS filtering":             "DNS-Filterung aktivieren",
+    "Filter DNS queries to block ads and trackers at the DNS level.\n"
+    "Uses a local DNS proxy with configurable upstreams.":
+        "DNS-Anfragen filtern um Werbung und Tracker auf DNS-Ebene zu blockieren.\n"
+        "Nutzt einen lokalen DNS-Proxy mit konfigurierbaren Upstreams.",
+    "Upstream:":                        "Upstream:",
+    "DNS upstream server.\n'default' = system DNS\n"
+    "Examples: 1.1.1.1, https://dns.google/dns-query,\n"
+    "tls://dns.adguard.com, quic://dns.adguard.com":
+        "DNS-Upstream-Server.\n'default' = System-DNS\n"
+        "Beispiele: 1.1.1.1, https://dns.google/dns-query,\n"
+        "tls://dns.adguard.com, quic://dns.adguard.com",
+    "Fallbacks:":                       "Fallbacks:",
+    "Fallback DNS servers (used when primary upstream fails).\n"
+    "'default' = system DNS. Space-separated list.\n"
+    "Example: default 1.1.1.1":
+        "Fallback-DNS-Server (wenn primärer Upstream ausfällt).\n"
+        "'default' = System-DNS. Leerzeichen-getrennte Liste.\n"
+        "Beispiel: default 1.1.1.1",
+    "Bootstraps:":                      "Bootstraps:",
+    "Bootstrap DNS for resolving upstream hostnames.\n"
+    "'default' = system DNS IPs. Only IP addresses allowed.\n"
+    "Example: default 8.8.8.8 tls://1.1.1.1":
+        "Bootstrap-DNS zum Auflösen von Upstream-Hostnamen.\n"
+        "'default' = System-DNS-IPs. Nur IP-Adressen erlaubt.\n"
+        "Beispiel: default 8.8.8.8 tls://1.1.1.1",
+    "Block ECH in DNS":                 "ECH in DNS blockieren",
+    "Remove ECH parameter from SVCB/HTTPS DNS records.\n"
+    "Enable only for browsers that don't auto-detect HTTPS filtering.":
+        "ECH-Parameter aus SVCB/HTTPS-DNS-Einträgen entfernen.\n"
+        "Nur aktivieren für Browser die HTTPS-Filterung nicht automatisch erkennen.",
+    "Stealth Mode (Tracking Protection)":
+        "Tarnmodus (Tracking-Schutz)",
+    "Enable Stealth Mode":              "Tarnmodus aktivieren",
+    "Master switch for all tracking protection features below.":
+        "Hauptschalter für alle folgenden Tracking-Schutz-Funktionen.",
+    "Cookies":                          "Cookies",
+    "Block third-party cookies":        "Drittanbieter-Cookies blockieren",
+    "Delete third-party cookies after a set time.\nPrevents cross-site tracking.":
+        "Drittanbieter-Cookies nach einer bestimmten Zeit löschen.\nVerhindert Cross-Site-Tracking.",
+    "Lifetime (minutes):":              "Lebensdauer (Minuten):",
+    "0 = block immediately. Default: 180 minutes.":
+        "0 = sofort blockieren. Standard: 180 Minuten.",
+    "Block first-party cookies":        "Erstanbieter-Cookies blockieren",
+    "Delete all cookies (including first-party) after a set time.\n"
+    "Warning: This will log you out of all sites!":
+        "Alle Cookies (inkl. Erstanbieter) nach einer bestimmten Zeit löschen.\n"
+        "Warnung: Du wirst auf allen Seiten ausgeloggt!",
+    "0 = block immediately. Default: 4320 minutes (3 days).":
+        "0 = sofort blockieren. Standard: 4320 Minuten (3 Tage).",
+    "Privacy":                          "Privatsphäre",
+    "Hide / reduce User-Agent":         "User-Agent verstecken / reduzieren",
+    "Reduces the User-Agent header to remove identifying information.\n"
+    "Helps prevent browser fingerprinting.":
+        "Reduziert den User-Agent-Header um identifizierende Informationen zu entfernen.\n"
+        "Hilft gegen Browser-Fingerprinting.",
+    "Hide search queries in referrer":  "Suchanfragen im Referrer verstecken",
+    "Hides your search terms when clicking from a search engine to a website.":
+        "Versteckt deine Suchbegriffe beim Klick von einer Suchmaschine auf eine Webseite.",
+    "Remove referrer from third-party requests":
+        "Referrer aus Drittanbieter-Anfragen entfernen",
+    "Prevents third-party sites from knowing which page you came from.":
+        "Verhindert dass Drittanbieter-Seiten wissen von welcher Seite du kommst.",
+    "Send Do-Not-Track signal":         "Do-Not-Track-Signal senden",
+    "Sends DNT header with requests.\nNote: Most sites ignore this, but some respect it.":
+        "Sendet DNT-Header mit Anfragen.\nHinweis: Die meisten Seiten ignorieren dies.",
+    "Disable third-party ETag cache":   "Drittanbieter-ETag-Cache deaktivieren",
+    "Prevents tracking via ETag caching in third-party content.":
+        "Verhindert Tracking über ETag-Caching bei Drittanbieter-Inhalten.",
+    "Block third-party Authorization header":
+        "Drittanbieter-Authorization-Header blockieren",
+    "Blocks the Authorization header in third-party requests to prevent tracking.":
+        "Blockiert den Authorization-Header bei Drittanbieter-Anfragen.",
+    "Remove X-Client-Data header":      "X-Client-Data-Header entfernen",
+    "Removes the X-Client-Data header sent by Chrome to Google services.":
+        "Entfernt den X-Client-Data-Header den Chrome an Google-Dienste sendet.",
+    "Browser API Blocking":             "Browser-API-Blockierung",
+    "Block WebRTC":                     "WebRTC blockieren",
+    "Prevents IP leaks via WebRTC.\nWarning: May break video calls and some web apps!":
+        "Verhindert IP-Leaks über WebRTC.\nWarnung: Kann Videoanrufe und Web-Apps beeinträchtigen!",
+    "Block Push API":                   "Push-API blockieren",
+    "Blocks browser push notifications from websites.":
+        "Blockiert Browser-Push-Benachrichtigungen von Webseiten.",
+    "Block Location API":               "Standort-API blockieren",
+    "Prevents websites from accessing your GPS location.":
+        "Verhindert den Zugriff von Webseiten auf deinen GPS-Standort.",
+    "Block Flash":                      "Flash blockieren",
+    "Blocks Flash plugin to reduce security vulnerabilities.":
+        "Blockiert das Flash-Plugin zur Reduzierung von Sicherheitslücken.",
+    "Block Java":                       "Java blockieren",
+    "Disables Java plugins. JavaScript remains enabled.":
+        "Deaktiviert Java-Plugins. JavaScript bleibt aktiviert.",
+    "Anti-DPI":                         "Anti-DPI",
+    "Enable Anti-DPI":                  "Anti-DPI aktivieren",
+    "Alters outgoing packet data to bypass Deep Packet Inspection.\n"
+    "Useful in countries with internet censorship.":
+        "Verändert ausgehende Paketdaten um Deep Packet Inspection zu umgehen.\n"
+        "Nützlich in Ländern mit Internet-Zensur.",
+    "App pattern":                      "App-Muster",
+    "Action":                           "Aktion",
+    "Skip outbound proxy":              "Ausgehenden Proxy umgehen",
+    "default: Filter fully\n"
+    "bypass_https: Skip HTTPS filtering\n"
+    "bypass: Skip all filtering (games, anti-cheat)":
+        "default: Vollständig filtern\n"
+        "bypass_https: HTTPS-Filterung überspringen\n"
+        "bypass: Gesamte Filterung überspringen (Spiele, Anti-Cheat)",
+    "Don't route this app's traffic through outbound proxy":
+        "Traffic dieser App nicht über den ausgehenden Proxy leiten",
+    "Browser list included from {}":    "Browser-Liste eingebunden aus {}",
+    "+ Add rule":                        "+ Regel hinzufügen",
+    "Add a new app filter rule":        "Neue App-Filterregel hinzufügen",
+    "− Remove selected":                "− Ausgewählte entfernen",
+    "Remove the selected rule":         "Ausgewählte Regel entfernen",
+    "↑ Move up":                        "↑ Nach oben",
+    "↓ Move down":                      "↓ Nach unten",
+    "Cannot remove":                    "Kann nicht entfernt werden",
+    "The browser include-list and wildcard (*) rule cannot be removed.":
+        "Die Browser-Include-Liste und die Wildcard-Regel (*) können nicht entfernt werden.",
+    "Browsing Security":                "Browser-Sicherheit",
+    "Enable Safe Browsing":             "Safe Browsing aktivieren",
+    "Warns about malicious and phishing websites.\n"
+    "Uses AdGuard's Safe Browsing database.":
+        "Warnt vor bösartigen und Phishing-Webseiten.\n"
+        "Nutzt die Safe-Browsing-Datenbank von AdGuard.",
+    "Send anonymous statistics":        "Anonyme Statistiken senden",
+    "Help improve Safe Browsing by sending anonymous lookup statistics.":
+        "Safe Browsing verbessern durch Senden anonymer Abfragestatistiken.",
+    "CRLite":                           "CRLite",
+    "Enable CRLite":                    "CRLite aktivieren",
+    "Certificate revocation checking using Mozilla's CRLite.\n"
+    "Faster and more reliable than traditional CRL/OCSP checks.":
+        "Zertifikatswiderrufsprüfung mit Mozillas CRLite.\n"
+        "Schneller und zuverlässiger als herkömmliche CRL/OCSP-Prüfungen.",
+    "Content Filtering":                "Inhaltsfilterung",
+    "Enable ad blocking":               "Werbeblocker aktivieren",
+    "Apply ad-blocking filter rules to HTTP/HTTPS requests.":
+        "Werbeblockierungsregeln auf HTTP/HTTPS-Anfragen anwenden.",
+    "Save failed":                      "Speichern fehlgeschlagen",
+    "Could not save proxy.yaml:\n{}":   "proxy.yaml konnte nicht gespeichert werden:\n{}",
+    "Configuration saved. Restart AdGuard to apply changes.":
+        "Konfiguration gespeichert. AdGuard neu starten um Änderungen anzuwenden.",
+    "AdGuard Configuration…":           "AdGuard-Konfiguration…",
+    "<b>App filter rules</b> (auto mode only)<br>"
+    "<small>"
+    "<b>default</b> – filter this app fully<br>"
+    "<b>bypass_https</b> – no HTTPS filtering for this app<br>"
+    "<b>bypass</b> – no filtering at all (use for games with anti-cheat)<br><br>"
+    "Wildcard patterns supported (e.g. <code>*steam*</code>, <code>*EasyAntiCheat*</code>).<br>"
+    "Rules are evaluated top to bottom – first match wins.<br>"
+    "The wildcard <code>*</code> rule should always be last."
+    "</small>":
+        "<b>App-Filterregeln</b> (nur im Auto-Modus)<br>"
+        "<small>"
+        "<b>default</b> – App vollständig filtern<br>"
+        "<b>bypass_https</b> – keine HTTPS-Filterung für diese App<br>"
+        "<b>bypass</b> – keine Filterung (für Spiele mit Anti-Cheat)<br><br>"
+        "Wildcard-Muster möglich (z.B. <code>*steam*</code>, <code>*EasyAntiCheat*</code>).<br>"
+        "Regeln werden von oben nach unten ausgewertet – erster Treffer gewinnt.<br>"
+        "Die Wildcard-Regel <code>*</code> sollte immer am Ende stehen."
+        "</small>",
+
     # ── main.py ───────────────────────────────────────────────────────────
     "System tray not available":
         "Kein System-Tray verfügbar",
