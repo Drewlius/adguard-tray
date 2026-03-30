@@ -160,12 +160,17 @@ class UserscriptsDialog(QDialog):
         self.lbl_status.setText(_t("Loading userscripts…"))
         w = _LoadWorker(self.cli)
         w.done.connect(self._on_loaded)
-        w.finished.connect(lambda: self._workers.remove(w))
+        w.finished.connect(lambda: self._workers.remove(w) if w in self._workers else None)
         self._workers.append(w)
         w.start()
 
     def _on_loaded(self, result: UserscriptListResult) -> None:
         self._set_busy(False)
+        # Disconnect before clearing to avoid stale signals; ignore if not connected
+        try:
+            self.tree.itemChanged.disconnect(self._on_item_changed)
+        except TypeError:
+            pass
         self.tree.clear()
         self._script_map.clear()
 
@@ -210,7 +215,7 @@ class UserscriptsDialog(QDialog):
         self.tree.itemChanged.disconnect(self._on_item_changed)
         w = _ToggleWorker(self.cli, name, enable)
         w.done.connect(self._on_toggle_done)
-        w.finished.connect(lambda: self._workers.remove(w))
+        w.finished.connect(lambda: self._workers.remove(w) if w in self._workers else None)
         self._workers.append(w)
         w.start()
 
@@ -251,7 +256,7 @@ class UserscriptsDialog(QDialog):
         self.lbl_status.setText(_t("Installing: {}", url.strip()))
         w = _InstallWorker(self.cli, url.strip())
         w.done.connect(self._on_install_done)
-        w.finished.connect(lambda: self._workers.remove(w))
+        w.finished.connect(lambda: self._workers.remove(w) if w in self._workers else None)
         self._workers.append(w)
         w.start()
 
@@ -293,7 +298,7 @@ class UserscriptsDialog(QDialog):
         self.lbl_status.setText(_t("Removing '{}'…", name))
         w = _RemoveWorker(self.cli, name)
         w.done.connect(self._on_remove_done)
-        w.finished.connect(lambda: self._workers.remove(w))
+        w.finished.connect(lambda: self._workers.remove(w) if w in self._workers else None)
         self._workers.append(w)
         w.start()
 
@@ -324,5 +329,7 @@ class UserscriptsDialog(QDialog):
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
-        self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.tree.customContextMenuRequested.connect(self._on_context_menu)
+        if not hasattr(self, '_shown_once'):
+            self._shown_once = True
+            self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            self.tree.customContextMenuRequested.connect(self._on_context_menu)

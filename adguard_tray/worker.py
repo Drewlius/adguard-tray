@@ -65,6 +65,7 @@ class StatusWorker(QObject):
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._enqueue)
         self._running = False
+        self._pending = False  # guard against overlapping checks
 
     # ── Public API ─────────────────────────────────────────────────────────
 
@@ -93,6 +94,14 @@ class StatusWorker(QObject):
     # ── Internal ───────────────────────────────────────────────────────────
 
     def _enqueue(self) -> None:
+        if self._pending:
+            logger.debug("Status check already pending, skipping")
+            return
+        self._pending = True
         runnable = _StatusRunnable(self.cli)
-        runnable.signals.result.connect(self.status_updated)
+        runnable.signals.result.connect(self._on_result)
         self._pool.start(runnable)
+
+    def _on_result(self, result) -> None:
+        self._pending = False
+        self.status_updated.emit(result)

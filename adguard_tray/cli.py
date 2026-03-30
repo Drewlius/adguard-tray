@@ -18,8 +18,11 @@ Filter list output format (after ANSI strip):
 """
 
 import logging
+import os
 import re
+import signal
 import subprocess
+import time
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -126,10 +129,41 @@ class AdGuardCLI:
     # ── Control commands ───────────────────────────────────────────────────
 
     def start(self) -> tuple[bool, str]:
-        return self._privileged_command("start")
+        ok, msg = self._privileged_command("start")
+        if not ok and "socket busy" in msg.lower():
+            # Stale socket from a previous unclean stop – kill and retry
+            logger.warning("Socket busy on start, cleaning up stale processes")
+            self._force_kill()
+            time.sleep(0.5)
+            ok, msg = self._privileged_command("start")
+        return ok, msg
 
     def stop(self) -> tuple[bool, str]:
-        return self._privileged_command("stop")
+        ok, msg = self._privileged_command("stop")
+        # Verify the service actually stopped – adguard-cli stop can report
+        # success while leaving the process alive (stale socket).
+        time.sleep(1)
+        status = self.get_status()
+        if status.status == AdGuardStatus.ACTIVE:
+            logger.warning("stop reported success but service still active, force-killing")
+            return self._force_kill()
+        return ok, msg
+
+    def _force_kill(self) -> tuple[bool, str]:
+        """Kill lingering adguard-cli processes and the root helper."""
+        killed = False
+        for name in ("adguard-cli", "adguard_root_helper"):
+            code, out, _ = _run(["pkill", "-f", name], timeout=5)
+            if code == 0:
+                killed = True
+        if killed:
+            time.sleep(0.5)
+            status = self.get_status()
+            if status.status != AdGuardStatus.ACTIVE:
+                logger.info("Force-kill succeeded")
+                return True, _t("AdGuard stopped (forced)")
+        logger.error("Force-kill failed, service may still be running")
+        return False, _t("Could not stop AdGuard – process may still be running")
 
     def restart(self) -> tuple[bool, str]:
         return self._privileged_command("restart")

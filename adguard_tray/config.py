@@ -30,7 +30,7 @@ def load_config() -> Config:
         valid = {f.name for f in fields(Config)}
         filtered = {k: v for k, v in data.items() if k in valid}
         return Config(**filtered)
-    except (json.JSONDecodeError, TypeError, ValueError) as exc:
+    except (json.JSONDecodeError, TypeError, ValueError, OSError) as exc:
         logger.warning("Config load failed, using defaults: %s", exc)
         return Config()
 

@@ -432,7 +432,10 @@ class AdGuardTray(QSystemTrayIcon):
         if not ok and self.config.notifications_enabled:
             notify(_t("AdGuard Tray – Error"), msg or _t("Command failed"),
                    urgency="critical", tray=self)
-        QTimer.singleShot(1500, self.worker.refresh)
+        # Refresh immediately – cli.stop() already verified the state
+        self.worker.refresh()
+        # Second check to catch delayed state changes
+        QTimer.singleShot(2000, self.worker.refresh)
 
     # ── Autostart ──────────────────────────────────────────────────────────
 

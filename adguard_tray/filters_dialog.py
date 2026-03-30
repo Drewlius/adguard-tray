@@ -212,21 +212,28 @@ class FiltersDialog(QDialog):
         self.lbl_status.setText(_t("Loading filters…"))
         w = _LoadWorker(self.cli)
         w.done.connect(self._on_filters_loaded)
-        w.finished.connect(lambda: self._workers.remove(w))
+        w.finished.connect(lambda: self._workers.remove(w) if w in self._workers else None)
         self._workers.append(w)
         w.start()
 
     def _on_filters_loaded(self, result: FilterListResult) -> None:
         self._set_busy(False)
+        # Disconnect before clearing to avoid itemChanged signals during teardown
+        try:
+            self.tree.itemChanged.disconnect(self._on_item_changed)
+        except TypeError:
+            pass
         self.tree.clear()
         self._filter_map.clear()
 
         if result.error:
             self.lbl_status.setText(_t("Error: {}", result.error))
+            self.tree.itemChanged.connect(self._on_item_changed)
             return
 
         if not result.groups:
             self.lbl_status.setText(_t("No filters found."))
+            self.tree.itemChanged.connect(self._on_item_changed)
             return
 
         total = sum(len(v) for v in result.groups.values())
@@ -250,6 +257,8 @@ class FiltersDialog(QDialog):
                 self._add_filter_item(group_item, f)
 
         self.tree.expandAll()
+        # Reconnect after tree is fully built
+        self.tree.itemChanged.connect(self._on_item_changed)
 
     def _add_filter_item(self, parent: QTreeWidgetItem, f: FilterEntry) -> QTreeWidgetItem:
         item = QTreeWidgetItem(parent)
@@ -292,7 +301,7 @@ class FiltersDialog(QDialog):
 
         w = _ToggleWorker(self.cli, fid, enable)
         w.done.connect(self._on_toggle_done)
-        w.finished.connect(lambda: self._workers.remove(w))
+        w.finished.connect(lambda: self._workers.remove(w) if w in self._workers else None)
         self._workers.append(w)
         w.start()
 
@@ -312,17 +321,17 @@ class FiltersDialog(QDialog):
         self.tree.itemChanged.connect(self._on_item_changed)
 
     def _revert_checkbox(self, fid: int, revert_to: bool) -> None:
+        # Note: itemChanged is already disconnected by _on_item_changed,
+        # so we can safely set the check state without triggering recursion.
         for i in range(self.tree.topLevelItemCount()):
             group = self.tree.topLevelItem(i)
             for j in range(group.childCount()):
                 child = group.child(j)
                 if child.data(0, Qt.ItemDataRole.UserRole) == fid:
-                    self.tree.itemChanged.disconnect(self._on_item_changed)
                     child.setCheckState(
                         0,
                         Qt.CheckState.Checked if revert_to else Qt.CheckState.Unchecked,
                     )
-                    self.tree.itemChanged.connect(self._on_item_changed)
                     return
 
     # ── Update all filters ─────────────────────────────────────────────────
@@ -333,7 +342,7 @@ class FiltersDialog(QDialog):
         self.update_output.hide()
         w = _UpdateWorker(self.cli)
         w.done.connect(self._on_update_done)
-        w.finished.connect(lambda: self._workers.remove(w))
+        w.finished.connect(lambda: self._workers.remove(w) if w in self._workers else None)
         self._workers.append(w)
         w.start()
 
@@ -368,7 +377,7 @@ class FiltersDialog(QDialog):
         self.lbl_status.setText(_t("Installing: {}", url))
         w = _InstallWorker(self.cli, url)
         w.done.connect(self._on_install_done)
-        w.finished.connect(lambda: self._workers.remove(w))
+        w.finished.connect(lambda: self._workers.remove(w) if w in self._workers else None)
         self._workers.append(w)
         w.start()
 
@@ -417,7 +426,7 @@ class FiltersDialog(QDialog):
         self.lbl_status.setText(_t("Removing filter {}…", fid))
         w = _RemoveWorker(self.cli, fid)
         w.done.connect(self._on_remove_done)
-        w.finished.connect(lambda: self._workers.remove(w))
+        w.finished.connect(lambda: self._workers.remove(w) if w in self._workers else None)
         self._workers.append(w)
         w.start()
 
@@ -458,7 +467,9 @@ class FiltersDialog(QDialog):
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
-        # Connect itemChanged here (after tree is shown) to avoid signals during build
-        self.tree.itemChanged.connect(self._on_item_changed)
-        self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.tree.customContextMenuRequested.connect(self._on_context_menu)
+        if not hasattr(self, '_shown_once'):
+            self._shown_once = True
+            # Connect once after tree is shown to avoid signals during build
+            self.tree.itemChanged.connect(self._on_item_changed)
+            self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            self.tree.customContextMenuRequested.connect(self._on_context_menu)
