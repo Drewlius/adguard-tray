@@ -214,9 +214,9 @@ class AdGuardTray(QSystemTrayIcon):
 
         menu.addSeparator()
 
-        act_proxy_config = QAction(_t("AdGuard Configuration…"))
-        act_proxy_config.triggered.connect(self._show_proxy_config)
-        menu.addAction(act_proxy_config)
+        self._act_proxy_config = QAction(_t("AdGuard Configuration…"))
+        self._act_proxy_config.triggered.connect(self._show_proxy_config)
+        menu.addAction(self._act_proxy_config)
 
         act_settings = QAction(_t("Settings…"))
         act_settings.triggered.connect(self._show_settings)
