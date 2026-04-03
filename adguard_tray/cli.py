@@ -81,6 +81,17 @@ class AdGuardCLI:
         if binary:
             self.BINARY = binary
 
+    # ── Version ────────────────────────────────────────────────────────────
+
+    def get_version(self) -> str:
+        """Return adguard-cli version string (e.g. '1.3.45'), or empty on error."""
+        code, out, _ = _run([self.BINARY, "--version"], timeout=5)
+        if code == 0 and out:
+            # Output: "AdGuard CLI v1.3.45"
+            parts = out.strip().rsplit("v", 1)
+            return parts[-1] if len(parts) == 2 else out.strip()
+        return ""
+
     # ── Status ─────────────────────────────────────────────────────────────
 
     def get_status(self) -> StatusResult:

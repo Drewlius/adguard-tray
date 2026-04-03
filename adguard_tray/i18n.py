@@ -451,6 +451,26 @@ _DE: dict[str, str] = {
         "Die Wildcard-Regel <code>*</code> sollte immer am Ende stehen."
         "</small>",
 
+    # ── exceptions_dialog.py ────────────────────────────────────────────
+    "Website Exceptions…":              "Website-Ausnahmen…",
+    "AdGuard Tray – Website Exceptions":
+        "AdGuard Tray – Website-Ausnahmen",
+    "<small>Websites listed here will not have ads or trackers blocked.<br>"
+    "Enter a domain (e.g. <code>example.com</code>) without <code>https://</code>.</small>":
+        "<small>Für hier gelistete Websites werden keine Werbung oder Tracker blockiert.<br>"
+        "Domain eingeben (z.B. <code>example.com</code>) ohne <code>https://</code>.</small>",
+    "example.com":                      "beispiel.de",
+    "Add":                              "Hinzufügen",
+    "Search exceptions…":               "Ausnahmen durchsuchen…",
+    "Remove selected":                  "Ausgewählte entfernen",
+    "{} exception(s)":                  "{} Ausnahme(n)",
+    "Invalid domain":                   "Ungültige Domain",
+    "'{}' is not a valid domain or IP address.":
+        "'{}' ist keine gültige Domain oder IP-Adresse.",
+    "'{}' is already in the list.":     "'{}' ist bereits in der Liste.",
+    "Could not save exceptions:\n{}":
+        "Ausnahmen konnten nicht gespeichert werden:\n{}",
+
     # ── main.py ───────────────────────────────────────────────────────────
     "System tray not available":
         "Kein System-Tray verfügbar",

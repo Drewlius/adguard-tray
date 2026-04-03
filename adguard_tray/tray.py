@@ -222,6 +222,10 @@ class AdGuardTray(QSystemTrayIcon):
         self._act_proxy_config.triggered.connect(self._show_proxy_config)
         menu.addAction(self._act_proxy_config)
 
+        self._act_exceptions = QAction(_t("Website Exceptions…"))
+        self._act_exceptions.triggered.connect(self._show_exceptions_dialog)
+        menu.addAction(self._act_exceptions)
+
         self._act_settings = QAction(_t("Settings…"))
         self._act_settings.triggered.connect(self._show_settings)
         menu.addAction(self._act_settings)
@@ -233,6 +237,11 @@ class AdGuardTray(QSystemTrayIcon):
         menu.addAction(self._act_autostart)
 
         menu.addSeparator()
+
+        # Version info (non-clickable)
+        self._act_version = QAction(self._version_label())
+        self._act_version.setEnabled(False)
+        menu.addAction(self._act_version)
 
         self._act_quit = QAction(_t("Quit"))
         self._act_quit.triggered.connect(self.app.quit)
@@ -492,6 +501,13 @@ class AdGuardTray(QSystemTrayIcon):
 
     # ── Dialogs ────────────────────────────────────────────────────────────
 
+    def _version_label(self) -> str:
+        from . import __version__
+        cli_ver = self.cli.get_version()
+        if cli_ver:
+            return f"adguard-tray v{__version__} · CLI v{cli_ver}"
+        return f"adguard-tray v{__version__}"
+
     def _show_proxy_config(self) -> None:
         from .proxy_config_dialog import ProxyConfigDialog
         dlg = ProxyConfigDialog()
@@ -514,6 +530,11 @@ class AdGuardTray(QSystemTrayIcon):
     def _show_userscripts_dialog(self) -> None:
         from .userscripts_dialog import UserscriptsDialog
         dlg = UserscriptsDialog(self.cli, on_change=self._restart_cli_async, parent=None)
+        dlg.exec()
+
+    def _show_exceptions_dialog(self) -> None:
+        from .exceptions_dialog import ExceptionsDialog
+        dlg = ExceptionsDialog(on_change=self._restart_cli_async, parent=None)
         dlg.exec()
 
     # ── Tray click ─────────────────────────────────────────────────────────
