@@ -11,7 +11,6 @@ Wayland / platform notes:
 
 import logging
 import logging.handlers
-import os
 import shutil
 import sys
 from pathlib import Path

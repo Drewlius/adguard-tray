@@ -15,11 +15,8 @@ import logging
 from pathlib import Path
 
 import yaml
-
-from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QIcon
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QApplication,
     QCheckBox,
     QComboBox,
     QDialog,
@@ -34,9 +31,9 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSpinBox,
-    QTabWidget,
     QTableWidget,
     QTableWidgetItem,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -621,9 +618,6 @@ class ProxyConfigDialog(QDialog):
                     # Keep include-list entries as-is (not editable in table)
                     self._app_rules.append(entry)
                     continue
-                name = entry.get("name", "")
-                action = entry.get("action", "")
-                skip = entry.get("skip_outbound_proxy", False)
                 self._app_rules.append(entry)
 
         self._populate_app_table()

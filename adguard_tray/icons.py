@@ -8,8 +8,8 @@ Icon set:
   icon_unknown()  – amber shield with ?
 """
 
-from PyQt6.QtCore import Qt, QRect, QPoint
-from PyQt6.QtGui import QColor, QIcon, QPainter, QPainterPath, QPixmap, QPen
+from PyQt6.QtCore import QPoint, QRect, Qt
+from PyQt6.QtGui import QColor, QIcon, QPainter, QPainterPath, QPen, QPixmap
 
 _CACHE: dict[str, QIcon] = {}
 
