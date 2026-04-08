@@ -496,6 +496,9 @@ _DE: dict[str, str] = {
     "Are you sure you want to reset the AdGuard license?":
         "Möchtest du die AdGuard-Lizenz wirklich zurücksetzen?",
     "Generating certificate…":          "Zertifikat wird generiert…",
+    "Firefox profile:":                 "Firefox-Profil:",
+    "(optional) e.g. abcd1234.MyProfile":
+        "(optional) z.B. abcd1234.MeinProfil",
     "License: {}":                      "Lizenz: {}",
     "Could not retrieve":               "Konnte nicht abgerufen werden",
 

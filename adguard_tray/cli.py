@@ -465,14 +465,17 @@ class AdGuardCLI:
 
     # ── Certificate ───────────────────────────────────────────────────────
 
-    def generate_cert(self) -> tuple[bool, str]:
+    def generate_cert(self, firefox_profile: str = "") -> tuple[bool, str]:
         """Generate and install the HTTPS filtering certificate.
 
         Runs without pkexec — adguard-cli cert handles privilege
         elevation internally. Pipes 'yes' to confirm the interactive prompt.
         """
+        args = [self.BINARY, "cert"]
+        if firefox_profile:
+            args += ["--firefox-profile", firefox_profile]
         code, out, err = _run(
-            [self.BINARY, "cert"], timeout=60, stdin_data="yes\n",
+            args, timeout=60, stdin_data="yes\n",
         )
         if code == 0:
             return True, out or _t("Certificate generated")
@@ -555,13 +558,16 @@ class FilterListResult:
 
 # ── Filter list parser ─────────────────────────────────────────────────────
 
-# Matches:  [x] |    -10001 | Bypass Paywalls Clean filter   2026-03-10 20:19:53
-# or:       [ ] |        2 | AdGuard Base filter             2026-03-10 21:12:04
+# Matches installed/enabled:  [x] |    -10001 | Bypass Paywalls Clean filter   2026-03-10 20:19:53
+# Matches installed/disabled: [ ] |        2 | AdGuard Base filter             2026-03-10 21:12:04
+# Matches not-added (--all):      |        4 | AdGuard Social Media filter    Filter is not added
 _FILTER_LINE_RE = re.compile(
-    r"^\[(?P<enabled>[x ])\]\s*\|\s*(?P<id>-?\d+)\s*\|\s*(?P<rest>.+)$"
+    r"^(?:\[(?P<enabled>[x ])\])?\s*\|\s*(?P<id>-?\d+)\s*\|\s*(?P<rest>.+)$"
 )
 # Timestamp at end of title: 4 digits-2-2 space 2:2:2
 _TIMESTAMP_RE = re.compile(r"\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s*$")
+# Status text appended by CLI instead of a timestamp
+_STATUS_SUFFIX_RE = re.compile(r"\s+Filter is (?:not added|disabled)\s*$")
 # Header line of the table (contains "ID" and "Title") – skip it
 _HEADER_RE = re.compile(r"^\s*\|?\s*ID\s*\|")
 
@@ -641,7 +647,9 @@ def _parse_filter_list(raw: str) -> FilterListResult:
 
         m = _FILTER_LINE_RE.match(line)
         if m:
-            enabled = m.group("enabled") == "x"
+            enabled_ch = m.group("enabled")
+            # None = not-added filter (no checkbox), " " = disabled, "x" = enabled
+            enabled = enabled_ch == "x"
             fid = int(m.group("id"))
             rest = m.group("rest").strip()
 
@@ -651,8 +659,10 @@ def _parse_filter_list(raw: str) -> FilterListResult:
                 last_update = ts_m.group(1).strip()
                 title = rest[: ts_m.start()].strip()
             else:
+                # Strip status suffix ("Filter is not added" / "Filter is disabled")
+                rest = _STATUS_SUFFIX_RE.sub("", rest)
                 last_update = ""
-                title = rest
+                title = rest.strip()
 
             entry = FilterEntry(
                 id=fid,

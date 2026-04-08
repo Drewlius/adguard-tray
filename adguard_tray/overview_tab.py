@@ -9,6 +9,7 @@ Shows status, version, license info, and quick actions:
 """
 
 import logging
+import re
 
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
@@ -25,6 +26,20 @@ from .cli import AdGuardCLI, AdGuardStatus
 from .i18n import _t
 
 logger = logging.getLogger(__name__)
+
+
+def _mask_license(raw: str) -> str:
+    """Mask email addresses and license keys in license output."""
+    def _mask_email(m: re.Match) -> str:
+        email = m.group(0)
+        local, domain = email.rsplit("@", 1)
+        return local[0] + "***@" + domain
+
+    # Mask emails: show first char + *** + @domain
+    out = re.sub(r"[\w.+-]+@[\w.-]+", _mask_email, raw)
+    # Mask license key: show first 4 chars + ****
+    out = re.sub(r"(?<=License key: )(\w{4})\w+", r"\1****", out)
+    return out
 
 
 class _Worker(QThread):
@@ -119,6 +134,13 @@ class OverviewTab(QWidget):
         cert_info.setWordWrap(True)
         cl.addWidget(cert_info)
 
+        from PyQt6.QtWidgets import QFormLayout, QLineEdit
+        cert_form = QFormLayout()
+        self.edit_firefox_profile = QLineEdit()
+        self.edit_firefox_profile.setPlaceholderText(_t("(optional) e.g. abcd1234.MyProfile"))
+        cert_form.addRow(_t("Firefox profile:"), self.edit_firefox_profile)
+        cl.addLayout(cert_form)
+
         self.btn_cert = QPushButton(_t("Generate certificate"))
         self.btn_cert.clicked.connect(self._do_gen_cert)
         cl.addWidget(self.btn_cert)
@@ -156,10 +178,13 @@ class OverviewTab(QWidget):
             ver_text += f" · AdGuard CLI v{cli_ver}"
         self.lbl_version.setText(ver_text)
 
-        # License
+        # License (mask sensitive fields)
         ok, lic = self.cli.get_license()
-        self.lbl_license.setText(lic if ok else _t("License: {}",
-                                                    lic or _t("Could not retrieve")))
+        if ok:
+            self.lbl_license.setText(_mask_license(lic))
+        else:
+            self.lbl_license.setText(_t("License: {}",
+                                        lic or _t("Could not retrieve")))
 
     def _run_action(self, fn, on_done=None) -> None:
         self._set_busy(True)
@@ -208,4 +233,5 @@ class OverviewTab(QWidget):
 
     def _do_gen_cert(self) -> None:
         self.lbl_result.setText(_t("Generating certificate…"))
-        self._run_action(self.cli.generate_cert)
+        profile = self.edit_firefox_profile.text().strip()
+        self._run_action(lambda: self.cli.generate_cert(firefox_profile=profile))

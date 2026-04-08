@@ -174,6 +174,8 @@ class ExceptionsTab(QWidget):
         ok, err = _save_user_rules(domains, self._other_lines)
         if ok:
             self._changed = True
+            if self._on_change:
+                self._on_change()
             self._update_status()
         else:
             QMessageBox.critical(self, _t("Save failed"), _t("Could not save exceptions:\n{}", err))

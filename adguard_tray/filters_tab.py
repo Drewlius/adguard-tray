@@ -115,7 +115,11 @@ class _ActionWorker(QThread):
         self._fn = fn
 
     def run(self):
-        self.done.emit(*self._fn())
+        try:
+            self.done.emit(*self._fn())
+        except Exception as exc:
+            logger.exception("Unexpected error in action worker")
+            self.done.emit(False, str(exc))
 
 
 # ── Tab widget ────────────────────────────────────────────────────────────
@@ -294,7 +298,7 @@ class FiltersTab(QWidget):
     def _on_toggle_done(self, ok: bool, msg: str, fid: int, new_enabled: bool) -> None:
         self._set_busy(False)
         if ok:
-            self._changed = True
+            self._mark_changed()
             if fid in self._filter_map:
                 self._filter_map[fid].enabled = new_enabled
             self.lbl_status.setText(
@@ -329,7 +333,7 @@ class FiltersTab(QWidget):
     def _on_update_done(self, ok: bool, msg: str) -> None:
         self._set_busy(False)
         if ok:
-            self._changed = True
+            self._mark_changed()
             self.lbl_status.setText(_t("Update completed."))
         else:
             self.lbl_status.setText(_t("Update failed."))
@@ -360,7 +364,7 @@ class FiltersTab(QWidget):
     def _on_install_done(self, ok: bool, msg: str) -> None:
         self._set_busy(False)
         if ok:
-            self._changed = True
+            self._mark_changed()
             self.lbl_status.setText(_t("Filter installed."))
             self._load_filters()
         else:
@@ -389,7 +393,7 @@ class FiltersTab(QWidget):
     def _on_add_id_done(self, ok: bool, msg: str) -> None:
         self._set_busy(False)
         if ok:
-            self._changed = True
+            self._mark_changed()
             self.lbl_status.setText(_t("Filter added."))
             self._load_filters()
         else:
@@ -444,7 +448,7 @@ class FiltersTab(QWidget):
     def _on_remove_done(self, ok: bool, msg: str, fid: int) -> None:
         self._set_busy(False)
         if ok:
-            self._changed = True
+            self._mark_changed()
             self.lbl_status.setText(_t("Filter {} removed.", fid))
             self._load_filters()
         else:
@@ -480,7 +484,7 @@ class FiltersTab(QWidget):
     def _on_action_done(self, ok: bool, msg: str, success_msg: str) -> None:
         self._set_busy(False)
         if ok:
-            self._changed = True
+            self._mark_changed()
             self.lbl_status.setText(success_msg)
             self._load_filters()
         else:
@@ -502,6 +506,11 @@ class FiltersTab(QWidget):
             group.setHidden(visible_children == 0)
 
     # ── Helpers ───────────────────────────────────────────────────────────
+
+    def _mark_changed(self) -> None:
+        self._changed = True
+        if self._on_change:
+            self._on_change()
 
     def _set_busy(self, busy: bool) -> None:
         self.btn_update.setEnabled(not busy)

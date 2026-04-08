@@ -181,7 +181,7 @@ class UserscriptsTab(QWidget):
     def _on_toggle_done(self, ok: bool, msg: str, name: str, new_enabled: bool) -> None:
         self._set_busy(False)
         if ok:
-            self._changed = True
+            self._mark_changed()
             if name in self._script_map:
                 self._script_map[name].enabled = new_enabled
             self.lbl_status.setText(
@@ -217,7 +217,7 @@ class UserscriptsTab(QWidget):
     def _on_install_done(self, ok: bool, msg: str) -> None:
         self._set_busy(False)
         if ok:
-            self._changed = True
+            self._mark_changed()
             self.lbl_status.setText(_t("Userscript installed."))
             self._load()
         else:
@@ -255,7 +255,7 @@ class UserscriptsTab(QWidget):
     def _on_remove_done(self, ok: bool, msg: str, name: str) -> None:
         self._set_busy(False)
         if ok:
-            self._changed = True
+            self._mark_changed()
             self.lbl_status.setText(_t("'{}' removed.", name))
             self._load()
         else:
@@ -267,6 +267,11 @@ class UserscriptsTab(QWidget):
             item = self.tree.topLevelItem(i)
             match = not needle or needle in item.text(0).lower() or needle in item.text(1).lower()
             item.setHidden(not match)
+
+    def _mark_changed(self) -> None:
+        self._changed = True
+        if self._on_change:
+            self._on_change()
 
     def _set_busy(self, busy: bool) -> None:
         self.btn_add.setEnabled(not busy)

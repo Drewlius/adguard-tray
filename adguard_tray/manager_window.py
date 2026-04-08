@@ -77,10 +77,4 @@ class ManagerWindow(QMainWindow):
         self.tabs.addTab(self._diagnostics, _t("Diagnostics"))
 
     def closeEvent(self, event) -> None:
-        # Trigger restart if any tab marked changes
-        tabs_with_changes = [
-            self._filters, self._dns_filters, self._userscripts, self._exceptions,
-        ]
-        if any(getattr(t, "_changed", False) for t in tabs_with_changes) and self._on_restart:
-            self._on_restart()
         super().closeEvent(event)

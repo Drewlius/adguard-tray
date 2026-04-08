@@ -134,7 +134,7 @@ class DiagnosticsTab(QWidget):
                     self.btn_import_settings, self.btn_benchmark):
             btn.setEnabled(not busy)
 
-    def _run_action(self, fn, show_output: bool = False) -> None:
+    def _run_action(self, fn, show_output: bool = False, on_done=None) -> None:
         self._set_busy(True)
         self.output.hide()
         w = _Worker(fn)
@@ -145,6 +145,8 @@ class DiagnosticsTab(QWidget):
             if show_output and msg:
                 self.output.setPlainText(msg)
                 self.output.show()
+            if on_done:
+                on_done(ok, msg)
 
         w.done.connect(_done)
         w.finished.connect(lambda: self._workers.remove(w) if w in self._workers else None)
@@ -177,7 +179,11 @@ class DiagnosticsTab(QWidget):
             ok, msg = self.cli.import_settings(path)
             return ok, msg
 
-        self._run_action(_do)
+        def _on_import_done(ok, msg):
+            if ok and self._on_restart:
+                self._on_restart()
+
+        self._run_action(_do, on_done=_on_import_done)
 
     def _run_benchmark(self) -> None:
         self.lbl_status.setText(_t("Running benchmark…"))
