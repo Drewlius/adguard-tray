@@ -7,7 +7,7 @@ Mirrors the Filters tab but uses `adguard-cli dns filters` subcommands.
 import logging
 
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QColor, QPalette
 from PyQt6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -221,7 +221,7 @@ class DnsFiltersTab(QWidget):
             font = group_item.font(0)
             font.setBold(True)
             group_item.setFont(0, font)
-            group_item.setForeground(0, QColor("#5b9bd5"))
+            group_item.setForeground(0, self.palette().color(QPalette.ColorRole.Link))
 
             for f in filters:
                 self._filter_map[f.id] = f
@@ -233,7 +233,9 @@ class DnsFiltersTab(QWidget):
                 item.setText(_COL_ID, str(f.id))
                 item.setText(_COL_UPDATED, f.last_update)
                 if f.is_custom:
-                    item.setForeground(0, QColor("#f59e0b"))
+                    bg = self.tree.palette().color(QPalette.ColorRole.Base)
+                    lum = 0.299 * bg.red() + 0.587 * bg.green() + 0.114 * bg.blue()
+                    item.setForeground(0, QColor("#b45309") if lum > 140 else QColor("#fbbf24"))
 
         self.tree.expandAll()
         self.tree.itemChanged.connect(self._on_item_changed)

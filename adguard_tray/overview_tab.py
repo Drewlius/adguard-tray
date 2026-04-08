@@ -57,6 +57,24 @@ class _Worker(QThread):
         self.done.emit(ok, msg)
 
 
+class _RefreshWorker(QThread):
+    done = pyqtSignal(object)  # dict with status, version, license
+
+    def __init__(self, cli):
+        super().__init__()
+        self.cli = cli
+
+    def run(self):
+        data = {
+            "status": self.cli.get_status(),
+            "version": self.cli.get_version(),
+        }
+        ok, lic = self.cli.get_license()
+        data["license_ok"] = ok
+        data["license"] = lic
+        self.done.emit(data)
+
+
 class OverviewTab(QWidget):
     def __init__(self, cli: AdGuardCLI, on_restart=None, parent=None) -> None:
         super().__init__(parent)
@@ -155,8 +173,19 @@ class OverviewTab(QWidget):
         layout.addStretch()
 
     def _refresh(self) -> None:
+        self._set_busy(True)
+        self.lbl_status.setText(_t("Checking status…"))
+        w = _RefreshWorker(self.cli)
+        w.done.connect(self._on_refresh_done)
+        w.finished.connect(lambda: self._workers.remove(w) if w in self._workers else None)
+        self._workers.append(w)
+        w.start()
+
+    def _on_refresh_done(self, data: dict) -> None:
+        self._set_busy(False)
+
         # Status
-        result = self.cli.get_status()
+        result = data["status"]
         status_map = {
             AdGuardStatus.ACTIVE: _t("Active – Protection running"),
             AdGuardStatus.INACTIVE: _t("Inactive – Protection stopped"),
@@ -172,19 +201,18 @@ class OverviewTab(QWidget):
 
         # Version
         from . import __version__
-        cli_ver = self.cli.get_version()
+        cli_ver = data["version"]
         ver_text = f"adguard-tray v{__version__}"
         if cli_ver:
             ver_text += f" · AdGuard CLI v{cli_ver}"
         self.lbl_version.setText(ver_text)
 
         # License (mask sensitive fields)
-        ok, lic = self.cli.get_license()
-        if ok:
-            self.lbl_license.setText(_mask_license(lic))
+        if data["license_ok"]:
+            self.lbl_license.setText(_mask_license(data["license"]))
         else:
             self.lbl_license.setText(_t("License: {}",
-                                        lic or _t("Could not retrieve")))
+                                        data["license"] or _t("Could not retrieve")))
 
     def _run_action(self, fn, on_done=None) -> None:
         self._set_busy(True)

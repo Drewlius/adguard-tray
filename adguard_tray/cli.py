@@ -174,7 +174,7 @@ class AdGuardCLI:
         """Kill lingering adguard-cli processes and the root helper."""
         killed = False
         for name in ("adguard-cli", "adguard_root_helper"):
-            code, out, _ = _run(["pkill", "-f", name], timeout=5)
+            code, out, _ = _run(["pkill", "-x", name], timeout=5)
             if code == 0:
                 killed = True
         if killed:

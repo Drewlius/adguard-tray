@@ -1,12 +1,10 @@
 """
 Exceptions tab for the Manager window.
 
-Reuses the core logic from exceptions_dialog as a QWidget tab page.
+Reuses the shared allowlist logic from _allowlist as a QWidget tab page.
 """
 
 import logging
-import re
-from pathlib import Path
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
@@ -20,57 +18,10 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from ._allowlist import is_valid_domain, load_user_rules, save_user_rules
 from .i18n import _t
 
 logger = logging.getLogger(__name__)
-
-_USER_RULES_FILE = Path.home() / ".local" / "share" / "adguard-cli" / "user.txt"
-_ALLOWLIST_RE = re.compile(r"^@@\|\|(.+?)\^\$important,document\s*$")
-_DOMAIN_RE = re.compile(
-    r"^(?:[a-zA-Z0-9](?:[a-zA-Z0-9\-]*[a-zA-Z0-9])?\.)*"
-    r"[a-zA-Z0-9](?:[a-zA-Z0-9\-]*[a-zA-Z0-9])?$"
-)
-_IP_RE = re.compile(r"^\d{1,3}(?:\.\d{1,3}){3}$")
-
-
-def _is_valid_domain(text: str) -> bool:
-    return bool(_DOMAIN_RE.match(text) or _IP_RE.match(text))
-
-
-def _domain_to_rule(domain: str) -> str:
-    return f"@@||{domain}^$important,document"
-
-
-def _load_user_rules() -> tuple[list[str], list[str]]:
-    domains: list[str] = []
-    other_lines: list[str] = []
-    if not _USER_RULES_FILE.exists():
-        return domains, other_lines
-    try:
-        for line in _USER_RULES_FILE.read_text(encoding="utf-8").splitlines():
-            m = _ALLOWLIST_RE.match(line)
-            if m:
-                domains.append(m.group(1))
-            else:
-                other_lines.append(line)
-    except OSError as exc:
-        logger.error("Failed to read user rules: %s", exc)
-    return domains, other_lines
-
-
-def _save_user_rules(domains: list[str], other_lines: list[str]) -> tuple[bool, str]:
-    try:
-        lines = list(other_lines)
-        for d in sorted(domains):
-            lines.append(_domain_to_rule(d))
-        text = "\n".join(lines)
-        if text and not text.endswith("\n"):
-            text += "\n"
-        _USER_RULES_FILE.write_text(text, encoding="utf-8")
-        return True, ""
-    except OSError as exc:
-        logger.error("Failed to save user rules: %s", exc)
-        return False, str(exc)
 
 
 class ExceptionsTab(QWidget):
@@ -129,7 +80,7 @@ class ExceptionsTab(QWidget):
         layout.addLayout(btn_row)
 
     def _load(self) -> None:
-        domains, self._other_lines = _load_user_rules()
+        domains, self._other_lines = load_user_rules()
         self.domain_list.clear()
         for d in sorted(domains):
             self.domain_list.addItem(d)
@@ -147,7 +98,7 @@ class ExceptionsTab(QWidget):
                 raw = raw[len(prefix):]
         raw = raw.split("/")[0].strip()
 
-        if not _is_valid_domain(raw):
+        if not is_valid_domain(raw):
             QMessageBox.warning(
                 self, _t("Invalid domain"),
                 _t("'{}' is not a valid domain or IP address.", raw),
@@ -171,7 +122,7 @@ class ExceptionsTab(QWidget):
 
     def _save_and_mark(self) -> None:
         domains = [self.domain_list.item(i).text() for i in range(self.domain_list.count())]
-        ok, err = _save_user_rules(domains, self._other_lines)
+        ok, err = save_user_rules(domains, self._other_lines)
         if ok:
             self._changed = True
             if self._on_change:
