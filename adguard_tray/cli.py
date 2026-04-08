@@ -62,9 +62,12 @@ class StatusResult:
     filtering_enabled: bool = False
 
 
-def _run(args: list[str], timeout: int = 15) -> tuple[int, str, str]:
+def _run(args: list[str], timeout: int = 15, stdin_data: str | None = None) -> tuple[int, str, str]:
     try:
-        r = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+        r = subprocess.run(
+            args, capture_output=True, text=True, timeout=timeout,
+            input=stdin_data,
+        )
         return r.returncode, _strip_ansi(r.stdout.strip()), _strip_ansi(r.stderr.strip())
     except FileNotFoundError:
         return -1, "", f"Binary not found: {args[0]}"
@@ -463,7 +466,14 @@ class AdGuardCLI:
     # ── Certificate ───────────────────────────────────────────────────────
 
     def generate_cert(self) -> tuple[bool, str]:
-        code, out, err = _run(["pkexec", self.BINARY, "cert"], timeout=60)
+        """Generate and install the HTTPS filtering certificate.
+
+        Runs without pkexec — adguard-cli cert handles privilege
+        elevation internally. Pipes 'yes' to confirm the interactive prompt.
+        """
+        code, out, err = _run(
+            [self.BINARY, "cert"], timeout=60, stdin_data="yes\n",
+        )
         if code == 0:
             return True, out or _t("Certificate generated")
         msg = err or out or _t("Certificate generation failed")
