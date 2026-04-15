@@ -87,7 +87,9 @@ class ExceptionsTab(QWidget):
         self._update_status()
 
     def _update_status(self) -> None:
-        self.lbl_status.setText(_t("{} exception(s)", self.domain_list.count()))
+        count = self.domain_list.count()
+        key = "1 exception" if count == 1 else "{} exceptions"
+        self.lbl_status.setText(_t(key, count))
 
     def _add(self) -> None:
         raw = self.input_domain.text().strip()

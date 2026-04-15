@@ -12,9 +12,11 @@ Wayland / platform notes:
 import logging
 import logging.handlers
 import shutil
+import signal
 import sys
 from pathlib import Path
 
+from PyQt6.QtCore import QLockFile, QTimer
 from PyQt6.QtWidgets import QApplication, QMessageBox, QPushButton, QSystemTrayIcon
 
 from .cli import AdGuardCLI
@@ -24,6 +26,9 @@ from .tray import AdGuardTray
 
 LOG_DIR = Path.home() / ".local" / "share" / "adguard-tray"
 LOG_FILE = LOG_DIR / "adguard-tray.log"
+
+CONFIG_DIR = Path.home() / ".config" / "adguard-tray"
+LOCK_FILE = CONFIG_DIR / "adguard-tray.lock"
 
 
 def _setup_logging(level: str) -> None:
@@ -56,6 +61,20 @@ def main() -> None:
     # Stay alive when all windows are closed (tray-only app)
     app.setQuitOnLastWindowClosed(False)
 
+    # Single-instance guard – refuse to start a second tray
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    lock = QLockFile(str(LOCK_FILE))
+    lock.setStaleLockTime(0)  # treat only live PIDs as holders
+    if not lock.tryLock(100):
+        logger.warning("Another adguard-tray instance is already running")
+        _info_dialog(
+            _t("AdGuard Tray is already running"),
+            _t("Only one instance can run at a time. Check your system tray."),
+        )
+        sys.exit(0)
+    # Keep the lock object alive for the app's lifetime
+    app._adguard_lock = lock  # type: ignore[attr-defined]
+
     # Check system tray availability
     if not QSystemTrayIcon.isSystemTrayAvailable():
         logger.error("System tray not available")
@@ -64,7 +83,7 @@ def main() -> None:
             _t(
                 "The system tray is not available in this desktop environment.\n\n"
                 "On Hyprland: waybar with the [tray] module enabled or sfwbar is required.\n"
-                "On KDE Plasma it should work out of the box."
+                "On KDE Plasma it should just work."
             ),
         )
         sys.exit(1)
@@ -75,7 +94,18 @@ def main() -> None:
 
     cli = AdGuardCLI(binary=config.adguard_cli_path)
     _dependency_doctor(cli)
-    tray = AdGuardTray(app, cli, config, exec_path)  # noqa: F841 (kept alive by app)
+    tray = AdGuardTray(app, cli, config, exec_path)
+
+    # Clean shutdown: stop polling timer before Qt tears things down
+    app.aboutToQuit.connect(tray.shutdown)
+
+    # Let Ctrl+C in the terminal quit the app instead of being swallowed by Qt
+    signal.signal(signal.SIGINT, lambda *_: app.quit())
+    signal.signal(signal.SIGTERM, lambda *_: app.quit())
+    # Kick the Python interpreter periodically so signal handlers run
+    _sigtick = QTimer()
+    _sigtick.start(500)
+    _sigtick.timeout.connect(lambda: None)
 
     logger.info("Entering event loop")
     sys.exit(app.exec())
@@ -139,3 +169,14 @@ def _fatal_dialog(title: str, message: str) -> None:
         msg.exec()
     except Exception:
         print(f"FATAL: {title}\n{message}", file=sys.stderr)
+
+
+def _info_dialog(title: str, message: str) -> None:
+    try:
+        msg = QMessageBox()
+        msg.setWindowTitle(title)
+        msg.setText(message)
+        msg.setIcon(QMessageBox.Icon.Information)
+        msg.exec()
+    except Exception:
+        print(f"{title}: {message}", file=sys.stderr)

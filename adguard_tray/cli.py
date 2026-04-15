@@ -45,6 +45,10 @@ def _is_cli_failure(stdout: str) -> bool:
     return any(kw in lower for kw in _FAILURE_KEYWORDS)
 
 
+def _valid_url(url: str) -> bool:
+    return url.lower().startswith(("http://", "https://"))
+
+
 class AdGuardStatus(Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
@@ -171,18 +175,27 @@ class AdGuardCLI:
         return ok, msg
 
     def _force_kill(self) -> tuple[bool, str]:
-        """Kill lingering adguard-cli processes and the root helper."""
-        killed = False
+        """Kill lingering adguard-cli processes and the root helper.
+
+        First try unprivileged pkill; if the service is still up, retry with
+        pkexec since adguard_root_helper runs as root and can't be signalled
+        from the user session.
+        """
         for name in ("adguard-cli", "adguard_root_helper"):
-            code, out, _ = _run(["pkill", "-x", name], timeout=5)
-            if code == 0:
-                killed = True
-        if killed:
-            time.sleep(0.5)
-            status = self.get_status()
-            if status.status != AdGuardStatus.ACTIVE:
-                logger.info("Force-kill succeeded")
-                return True, _t("AdGuard stopped (forced)")
+            _run(["pkill", "-x", name], timeout=5)
+        time.sleep(0.5)
+        if self.get_status().status != AdGuardStatus.ACTIVE:
+            logger.info("Force-kill succeeded (user)")
+            return True, _t("AdGuard stopped (forced)")
+
+        logger.warning("User-level pkill did not stop service, trying pkexec")
+        for name in ("adguard-cli", "adguard_root_helper"):
+            _run(["pkexec", "pkill", "-x", name], timeout=30)
+        time.sleep(0.5)
+        if self.get_status().status != AdGuardStatus.ACTIVE:
+            logger.info("Force-kill succeeded (pkexec)")
+            return True, _t("AdGuard stopped (forced)")
+
         logger.error("Force-kill failed, service may still be running")
         return False, _t("Could not stop AdGuard – process may still be running")
 
@@ -204,7 +217,7 @@ class AdGuardCLI:
         code, out, err = _run([self.BINARY, cmd])
         if code == 0:
             logger.info("adguard-cli %s succeeded (direct)", cmd)
-            return True, out or _t("AdGuard {} successful", cmd)
+            return True, out or _t("AdGuard {} ok", cmd)
 
         logger.debug("Direct %s failed (exit %d): %s – trying pkexec", cmd, code, err)
 
@@ -212,7 +225,14 @@ class AdGuardCLI:
         code2, out2, err2 = _run(["pkexec", self.BINARY, cmd], timeout=60)
         if code2 == 0:
             logger.info("adguard-cli %s succeeded (pkexec)", cmd)
-            return True, out2 or _t("AdGuard {} successful", cmd)
+            return True, out2 or _t("AdGuard {} ok", cmd)
+
+        # pkexec exits 126 when the user cancels or fails authentication,
+        # 127 when the helper binary is missing. Surface that directly
+        # instead of falling through to systemctl, which would prompt again.
+        if code2 in (126, 127):
+            logger.info("pkexec authentication cancelled/failed (exit %d)", code2)
+            return False, _t("Authentication cancelled")
 
         logger.debug("pkexec adguard-cli %s failed (exit %d) – trying systemctl", cmd, code2)
 
@@ -224,7 +244,9 @@ class AdGuardCLI:
             )
             if code3 == 0:
                 logger.info("systemctl %s adguard-cli succeeded (pkexec)", systemctl_cmd)
-                return True, _t("AdGuard via systemctl {} successful", systemctl_cmd)
+                return True, _t("AdGuard via systemctl {} ok", systemctl_cmd)
+            if code3 in (126, 127):
+                return False, _t("Authentication cancelled")
             final_err = err3 or out3
         else:
             final_err = err2 or out2 or err or out
@@ -265,6 +287,8 @@ class AdGuardCLI:
 
     def install_filter(self, url: str) -> tuple[bool, str]:
         """Install a custom filter from a URL."""
+        if not _valid_url(url):
+            return False, _t("URL must start with http:// or https://")
         code, out, err = _run([self.BINARY, "filters", "install", url], timeout=30)
         if code == 0 and not _is_cli_failure(out):
             logger.info("Custom filter installed: %s", url)
@@ -330,6 +354,8 @@ class AdGuardCLI:
         return False, msg
 
     def install_userscript(self, url: str) -> tuple[bool, str]:
+        if not _valid_url(url):
+            return False, _t("URL must start with http:// or https://")
         code, out, err = _run([self.BINARY, "userscripts", "install", url], timeout=30)
         if code == 0 and not _is_cli_failure(out):
             return True, out or _t("Userscript installed")
@@ -365,6 +391,8 @@ class AdGuardCLI:
         return False, msg
 
     def install_dns_filter(self, url: str, title: str = "") -> tuple[bool, str]:
+        if not _valid_url(url):
+            return False, _t("URL must start with http:// or https://")
         args = [self.BINARY, "dns", "filters", "install", url]
         if title:
             args += ["--title", title]
@@ -435,6 +463,8 @@ class AdGuardCLI:
 
     def install_filter_ext(self, url: str, trusted: bool = False, title: str = "") -> tuple[bool, str]:
         """Install custom filter with optional --trusted and --title flags."""
+        if not _valid_url(url):
+            return False, _t("URL must start with http:// or https://")
         args = [self.BINARY, "filters", "install", url]
         if trusted:
             args.append("--trusted")
@@ -458,7 +488,7 @@ class AdGuardCLI:
     def reset_license(self) -> tuple[bool, str]:
         code, out, err = _run([self.BINARY, "reset-license"], timeout=15)
         if code == 0:
-            return True, out or _t("License reset successful")
+            return True, out or _t("License reset")
         msg = err or out or _t("Could not reset license")
         logger.error("reset_license failed: %s", msg)
         return False, msg

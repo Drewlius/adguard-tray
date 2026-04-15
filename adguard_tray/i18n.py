@@ -78,6 +78,11 @@ _DE: dict[str, str] = {
     "How often adguard-cli status is checked automatically.":
         "Wie häufig der Status von adguard-cli automatisch abgefragt wird.",
     "Interval:":                            "Intervall:",
+    "Log level:":                           "Log-Level:",
+    "adguard-cli path:":                    "adguard-cli-Pfad:",
+    "auto-detect via PATH":                 "automatisch via PATH",
+    "Browse…":                              "Durchsuchen…",
+    "Select adguard-cli binary":            "adguard-cli-Binary auswählen",
     "Notifications":                        "Benachrichtigungen",
     "Desktop notification on status change":
         "Desktop-Benachrichtigung bei Statusänderung",
@@ -169,8 +174,8 @@ _DE: dict[str, str] = {
         "  paru -S adguard-cli-bin",
     "Unknown error retrieving status":
         "Unbekannter Fehler beim Statusabruf",
-    "AdGuard {} successful":                "AdGuard {} erfolgreich",
-    "AdGuard via systemctl {} successful":  "AdGuard via systemctl {} erfolgreich",
+    "AdGuard {} ok":                        "AdGuard {} ok",
+    "AdGuard via systemctl {} ok":          "AdGuard via systemctl {} ok",
     "'{}' failed – insufficient privileges?":
         "'{}' fehlgeschlagen – Rechte unzureichend?",
     "Could not retrieve filter list":
@@ -428,7 +433,7 @@ _DE: dict[str, str] = {
     "Configuration saved. Restart AdGuard to apply changes.":
         "Konfiguration gespeichert. AdGuard neu starten um Änderungen anzuwenden.",
     "Restarting AdGuard…":              "AdGuard wird neu gestartet…",
-    "AdGuard restarted successfully.":  "AdGuard erfolgreich neu gestartet.",
+    "AdGuard restarted.":               "AdGuard neu gestartet.",
     "Restart failed: {}":               "Neustart fehlgeschlagen: {}",
     "Unknown error":                    "Unbekannter Fehler",
     "AdGuard Configuration…":           "AdGuard-Konfiguration…",
@@ -463,8 +468,10 @@ _DE: dict[str, str] = {
     "Add":                              "Hinzufügen",
     "Search exceptions…":               "Ausnahmen durchsuchen…",
     "Remove selected":                  "Ausgewählte entfernen",
-    "{} exception(s)":                  "{} Ausnahme(n)",
+    "1 exception":                      "1 Ausnahme",
+    "{} exceptions":                    "{} Ausnahmen",
     "Invalid domain":                   "Ungültige Domain",
+    "Invalid URL":                      "Ungültige URL",
     "'{}' is not a valid domain or IP address.":
         "'{}' ist keine gültige Domain oder IP-Adresse.",
     "'{}' is already in the list.":     "'{}' ist bereits in der Liste.",
@@ -610,7 +617,7 @@ _DE: dict[str, str] = {
     "Could not update filter trust":    "Filtervertrauen konnte nicht aktualisiert werden",
     "Filter title updated":             "Filtertitel aktualisiert",
     "Could not set filter title":       "Filtertitel konnte nicht gesetzt werden",
-    "License reset successful":         "Lizenz erfolgreich zurückgesetzt",
+    "License reset":                    "Lizenz zurückgesetzt",
     "Could not reset license":          "Lizenz konnte nicht zurückgesetzt werden",
     "Could not retrieve license info":  "Lizenzinformationen konnten nicht abgerufen werden",
     "Certificate generated":            "Zertifikat generiert",
@@ -631,10 +638,10 @@ _DE: dict[str, str] = {
         "Kein System-Tray verfügbar",
     "The system tray is not available in this desktop environment.\n\n"
     "On Hyprland: waybar with the [tray] module enabled or sfwbar is required.\n"
-    "On KDE Plasma it should work out of the box.":
+    "On KDE Plasma it should just work.":
         "Das System-Tray ist in dieser Desktop-Umgebung nicht verfügbar.\n\n"
         "Unter Hyprland: waybar mit aktiviertem [tray]-Modul oder sfwbar benötigt.\n"
-        "Unter KDE Plasma sollte es sofort funktionieren.",
+        "Unter KDE Plasma sollte es einfach laufen.",
     "adguard-cli could not be found on this system.\n\n"
     "Recommended install method (official):\n"
     "  curl -fsSL https://raw.githubusercontent.com/AdguardTeam/AdGuardCLI/release/install.sh | sh -s -- -v\n\n"
@@ -649,6 +656,16 @@ _DE: dict[str, str] = {
         "Die Anwendung startet, aber Schutzfunktionen sind erst nach der Installation von adguard-cli verfügbar.",
     "Copy install command":             "Installationsbefehl kopieren",
     "Continue":                         "Weiter",
+    "AdGuard Tray is already running":  "AdGuard Tray läuft bereits",
+    "Only one instance can run at a time. Check your system tray.":
+        "Es kann nur eine Instanz gleichzeitig laufen. Schau in den System-Tray.",
+    "Authentication cancelled":         "Authentifizierung abgebrochen",
+    "URL must start with http:// or https://":
+        "URL muss mit http:// oder https:// beginnen",
+    "Log level and CLI path changes apply after a restart.":
+        "Log-Level und CLI-Pfad werden nach einem Neustart wirksam.",
+    "adguard-cli path does not exist or is not executable.":
+        "adguard-cli-Pfad existiert nicht oder ist nicht ausführbar.",
 }
 
 # ── Translation registry ──────────────────────────────────────────────────

@@ -254,9 +254,17 @@ class UserscriptsDialog(QDialog):
         )
         if not ok or not url.strip():
             return
+        url = url.strip()
+        if not url.lower().startswith(("http://", "https://")):
+            QMessageBox.warning(
+                self,
+                _t("Invalid URL"),
+                _t("URL must start with http:// or https://"),
+            )
+            return
         self._set_busy(True)
-        self.lbl_status.setText(_t("Installing: {}", url.strip()))
-        w = _InstallWorker(self.cli, url.strip())
+        self.lbl_status.setText(_t("Installing: {}", url))
+        w = _InstallWorker(self.cli, url)
         w.done.connect(self._on_install_done)
         w.finished.connect(lambda: self._workers.remove(w) if w in self._workers else None)
         self._workers.append(w)

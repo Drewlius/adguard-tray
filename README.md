@@ -91,9 +91,13 @@ The entry goes to `~/.config/autostart/adguard-tray.desktop` (standard XDG autos
 ──────────────────────────────
   Refresh status
 ──────────────────────────────
+  Open Manager…         (full tabbed GUI)
+  AdGuard Configuration…(proxy.yaml editor)
+  Website Exceptions…
   Settings…
   Autostart on login  [✓]
 ──────────────────────────────
+  adguard-tray vX.Y.Z · CLI vA.B.C
   Quit
 ```
 

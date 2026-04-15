@@ -376,6 +376,13 @@ class FiltersDialog(QDialog):
             return
 
         url = url.strip()
+        if not url.lower().startswith(("http://", "https://")):
+            QMessageBox.warning(
+                self,
+                _t("Invalid URL"),
+                _t("URL must start with http:// or https://"),
+            )
+            return
         self._set_busy(True)
         self.lbl_status.setText(_t("Installing: {}", url))
         w = _InstallWorker(self.cli, url)

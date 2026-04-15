@@ -8,16 +8,23 @@ Manages:
 """
 
 import logging
+import os
 from pathlib import Path
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QDialogButtonBox,
+    QFileDialog,
     QFormLayout,
     QGroupBox,
+    QHBoxLayout,
     QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
     QSpinBox,
     QVBoxLayout,
 )
@@ -72,6 +79,30 @@ class SettingsDialog(QDialog):
             _t("How often adguard-cli status is checked automatically.")
         )
         form.addRow(_t("Interval:"), self.spin_interval)
+
+        self.combo_log = QComboBox()
+        self.combo_log.addItems(["DEBUG", "INFO", "WARNING", "ERROR"])
+        idx = self.combo_log.findText(self.config.log_level.upper())
+        if idx >= 0:
+            self.combo_log.setCurrentIndex(idx)
+        form.addRow(_t("Log level:"), self.combo_log)
+
+        cli_row = QHBoxLayout()
+        self.edit_cli_path = QLineEdit(self.config.adguard_cli_path)
+        self.edit_cli_path.setPlaceholderText(_t("auto-detect via PATH"))
+        cli_row.addWidget(self.edit_cli_path)
+        btn_browse = QPushButton(_t("Browse…"))
+        btn_browse.clicked.connect(self._browse_cli)
+        cli_row.addWidget(btn_browse)
+        form.addRow(_t("adguard-cli path:"), cli_row)
+
+        restart_hint = QLabel(
+            _t("<small>Log level and CLI path changes apply after a restart.</small>")
+        )
+        restart_hint.setTextFormat(Qt.TextFormat.RichText)
+        restart_hint.setWordWrap(True)
+        form.addRow(restart_hint)
+
         layout.addWidget(grp_poll)
 
         # ── Notifications ──────────────────────────────────────────────────
@@ -123,9 +154,30 @@ class SettingsDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
+    def _browse_cli(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self, _t("Select adguard-cli binary"), "/usr/local/bin"
+        )
+        if path:
+            self.edit_cli_path.setText(path)
+
     def _apply(self) -> None:
+        cli_path = self.edit_cli_path.text().strip()
+        if cli_path and not (os.path.isfile(cli_path) and os.access(cli_path, os.X_OK)):
+            reply = QMessageBox.warning(
+                self,
+                _t("AdGuard Tray – Settings"),
+                _t("adguard-cli path does not exist or is not executable."),
+                QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Cancel,
+            )
+            if reply != QMessageBox.StandardButton.Save:
+                return
+
         self.config.refresh_interval = self.spin_interval.value()
         self.config.notifications_enabled = self.cb_notify.isChecked()
+        self.config.log_level = self.combo_log.currentText()
+        self.config.adguard_cli_path = cli_path
         save_config(self.config)
         self._manage_autostart(self.cb_autostart.isChecked())
         self.accept()

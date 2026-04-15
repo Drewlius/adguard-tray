@@ -309,6 +309,7 @@ class AdGuardTray(QSystemTrayIcon):
                     act = QAction(f.title, self._filter_menu)
                     act.setCheckable(True)
                     act.setChecked(f.enabled)
+                    act.setData(f.id)
                     # capture by value
                     act.triggered.connect(
                         lambda checked, fid=f.id: self._toggle_filter(fid, checked)
@@ -329,7 +330,15 @@ class AdGuardTray(QSystemTrayIcon):
     def _on_filter_toggle_done(self, ok: bool, msg: str, fid: int, new_enabled: bool) -> None:
         if ok:
             self._restart_cli_async()
-        elif self.config.notifications_enabled:
+            return
+        # Revert the checkbox in the submenu so it matches reality
+        for act in self._filter_menu.actions():
+            if act.data() == fid:
+                act.blockSignals(True)
+                act.setChecked(not new_enabled)
+                act.blockSignals(False)
+                break
+        if self.config.notifications_enabled:
             notify(_t("AdGuard Tray – Error"), msg, urgency="critical", tray=self)
 
     # ── Userscript submenu (lazy) ──────────────────────────────────────────
@@ -363,6 +372,7 @@ class AdGuardTray(QSystemTrayIcon):
                 act = QAction(s.title, self._us_menu)
                 act.setCheckable(True)
                 act.setChecked(s.enabled)
+                act.setData(s.name)
                 act.triggered.connect(
                     lambda checked, name=s.name: self._toggle_userscript(name, checked)
                 )
@@ -382,7 +392,14 @@ class AdGuardTray(QSystemTrayIcon):
     def _on_userscript_toggle_done(self, ok: bool, msg: str, name: str, new_enabled: bool) -> None:
         if ok:
             self._restart_cli_async()
-        elif self.config.notifications_enabled:
+            return
+        for act in self._us_menu.actions():
+            if act.data() == name:
+                act.blockSignals(True)
+                act.setChecked(not new_enabled)
+                act.blockSignals(False)
+                break
+        if self.config.notifications_enabled:
             notify(_t("AdGuard Tray – Error"), msg, urgency="critical", tray=self)
 
     # ── Status updates ─────────────────────────────────────────────────────
@@ -473,7 +490,7 @@ class AdGuardTray(QSystemTrayIcon):
     def _on_restart_done(self, ok: bool, msg: str) -> None:
         if self.config.notifications_enabled:
             if ok:
-                notify("AdGuard Tray", _t("AdGuard restarted successfully."), tray=self)
+                notify("AdGuard Tray", _t("AdGuard restarted."), tray=self)
             else:
                 notify(_t("AdGuard Tray – Error"),
                        _t("Restart failed: {}", msg or _t("Unknown error")),
@@ -561,3 +578,17 @@ class AdGuardTray(QSystemTrayIcon):
     def _on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
             self.worker.refresh()
+
+    # ── Shutdown ───────────────────────────────────────────────────────────
+
+    def shutdown(self) -> None:
+        """Stop the status timer and wait briefly for pending QThreads."""
+        logger.debug("Shutting down tray")
+        try:
+            self.worker.stop()
+        except Exception:
+            logger.exception("Error stopping worker")
+        for t in list(self._bg_threads):
+            if t.isRunning():
+                t.quit()
+                t.wait(500)

@@ -109,7 +109,8 @@ class ExceptionsDialog(QDialog):
 
     def _update_status(self) -> None:
         count = self.domain_list.count()
-        self.lbl_status.setText(_t("{} exception(s)", count))
+        key = "1 exception" if count == 1 else "{} exceptions"
+        self.lbl_status.setText(_t(key, count))
 
     def _add(self) -> None:
         raw = self.input_domain.text().strip()
