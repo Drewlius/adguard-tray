@@ -17,14 +17,18 @@ Filter list output format (after ANSI strip):
   Filter lines:   [x] |    ID | Title          YYYY-MM-DD HH:MM:SS
 """
 
+import json
 import logging
 import re
 import subprocess
 import time
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 
 from .i18n import _t
+
+_USERSCRIPTS_DIR = Path.home() / ".local" / "share" / "adguard-cli" / "userscripts"
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +40,15 @@ def _strip_ansi(text: str) -> str:
     return _ANSI_RE.sub("", text)
 
 
-_FAILURE_KEYWORDS = ("failed to install", "failed to download", "failed to remove", "failed to enable", "failed to disable")
+_FAILURE_KEYWORDS = (
+    "failed to install",
+    "failed to download",
+    "failed to remove",
+    "failed to enable",
+    "failed to disable",
+    "no userscripts matching",
+    "no filters matching",
+)
 
 
 def _is_cli_failure(stdout: str) -> bool:
@@ -323,15 +335,74 @@ class AdGuardCLI:
     # ── Userscript management ──────────────────────────────────────────────
 
     def get_userscripts(self) -> "UserscriptListResult":
-        """Parse `adguard-cli userscripts list` output."""
+        """Return installed userscripts with their *real* (untruncated) IDs.
+
+        The CLI's `userscripts list` output truncates long IDs with `...`,
+        which would break enable/disable/remove calls. We use the list only
+        for the enabled flag and the last-update timestamp, and take the real
+        ID + human-readable title from the .meta.json files on disk.
+        """
         code, out, err = _run([self.BINARY, "userscripts", "list"], timeout=15)
         if code != 0:
             return UserscriptListResult(error=err or out or _t("Could not retrieve userscript list"))
-        return _parse_userscript_list(out)
+        parsed = _parse_userscript_list(out)
+
+        # Build filesystem inventory: real_id → (real_id, title)
+        real: list[tuple[str, str]] = []
+        if _USERSCRIPTS_DIR.is_dir():
+            for meta in sorted(_USERSCRIPTS_DIR.glob("*.meta.json")):
+                real_id = meta.name[: -len(".meta.json")]
+                title = real_id
+                try:
+                    data = json.loads(meta.read_text(encoding="utf-8"))
+                    title = data.get("name") or real_id
+                except (OSError, json.JSONDecodeError) as exc:
+                    logger.debug("meta.json read failed for %s: %s", meta, exc)
+                real.append((real_id, title))
+
+        if not real:
+            # Filesystem not accessible – fall back to parsed list (may have
+            # truncated IDs). Better than nothing.
+            return parsed
+
+        # Match parsed entries (possibly truncated) to real IDs by prefix.
+        result = UserscriptListResult()
+        used: set[str] = set()
+        for entry in parsed.scripts:
+            pid = entry.name
+            # CLI appends "..." when the ID was truncated.
+            truncated = pid.endswith("...")
+            prefix = pid[:-3] if truncated else pid
+            match: tuple[str, str] | None = None
+            for real_id, title in real:
+                if real_id in used:
+                    continue
+                if real_id == pid or (truncated and real_id.startswith(prefix)):
+                    match = (real_id, title)
+                    break
+            if match:
+                used.add(match[0])
+                result.scripts.append(UserscriptEntry(
+                    name=match[0],
+                    title=match[1] or entry.title,
+                    enabled=entry.enabled,
+                    last_update=entry.last_update,
+                ))
+            else:
+                # Keep the parsed entry so the user still sees something
+                result.scripts.append(entry)
+
+        # Surface any on-disk userscript the CLI didn't report
+        for real_id, title in real:
+            if real_id not in used:
+                result.scripts.append(UserscriptEntry(
+                    name=real_id, title=title, enabled=False, last_update="",
+                ))
+        return result
 
     def enable_userscript(self, name: str) -> tuple[bool, str]:
         code, out, err = _run([self.BINARY, "userscripts", "enable", name], timeout=15)
-        if code == 0:
+        if code == 0 and not _is_cli_failure(out):
             return True, out or _t("Userscript '{}' enabled", name)
         msg = err or out or _t("Could not enable userscript '{}'", name)
         logger.error("enable_userscript(%s) failed: %s", name, msg)
@@ -339,7 +410,7 @@ class AdGuardCLI:
 
     def disable_userscript(self, name: str) -> tuple[bool, str]:
         code, out, err = _run([self.BINARY, "userscripts", "disable", name], timeout=15)
-        if code == 0:
+        if code == 0 and not _is_cli_failure(out):
             return True, out or _t("Userscript '{}' disabled", name)
         msg = err or out or _t("Could not disable userscript '{}'", name)
         logger.error("disable_userscript(%s) failed: %s", name, msg)
@@ -347,7 +418,7 @@ class AdGuardCLI:
 
     def remove_userscript(self, name: str) -> tuple[bool, str]:
         code, out, err = _run([self.BINARY, "userscripts", "remove", name], timeout=15)
-        if code == 0:
+        if code == 0 and not _is_cli_failure(out):
             return True, out or _t("Userscript '{}' removed", name)
         msg = err or out or _t("Could not remove userscript '{}'", name)
         logger.error("remove_userscript(%s) failed: %s", name, msg)
