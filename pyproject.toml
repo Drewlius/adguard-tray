@@ -1,6 +1,6 @@
 [project]
 name = "adguard-tray"
-version = "1.5.0"
+version = "1.6.0"
 description = "System tray monitor and controller for adguard-cli"
 requires-python = ">=3.11"
 license = {text = "MIT"}

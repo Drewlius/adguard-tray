@@ -666,6 +666,16 @@ _DE: dict[str, str] = {
         "Log-Level und CLI-Pfad werden nach einem Neustart wirksam.",
     "adguard-cli path does not exist or is not executable.":
         "adguard-cli-Pfad existiert nicht oder ist nicht ausführbar.",
+    "Update channel":                   "Update-Channel",
+    "Channel:":                         "Channel:",
+    "<small>Controls which AdGuard CLI build <i>Check for CLI update</i> "
+    "will pull. Changes take effect on the next update run.</small>":
+        "<small>Legt fest, welchen AdGuard-CLI-Build <i>Check for CLI update</i> "
+        "holt. Änderungen greifen beim nächsten Update-Lauf.</small>",
+    "Switching update channel to {}…":  "Wechsle Update-Channel auf {}…",
+    "Update channel set to {}":         "Update-Channel auf {} gesetzt",
+    "Could not set update channel":     "Update-Channel konnte nicht gesetzt werden",
+    "Invalid channel: {}":              "Ungültiger Channel: {}",
 }
 
 # ── Translation registry ──────────────────────────────────────────────────

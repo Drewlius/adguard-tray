@@ -477,6 +477,33 @@ class AdGuardCLI:
         logger.error("install_filter_ext(%s) failed: %s", url, msg)
         return False, msg
 
+    # ── Config (adguard-cli config get/set) ───────────────────────────────
+
+    UPDATE_CHANNELS = ("release", "beta", "nightly", "default")
+
+    def get_update_channel(self) -> str:
+        """Return the current update channel, or "" on error."""
+        code, out, _ = _run([self.BINARY, "config", "get", "update_channel"], timeout=10)
+        if code != 0 or not out:
+            return ""
+        # Output: "update_channel = nightly"
+        if "=" in out:
+            return out.split("=", 1)[1].strip()
+        return out.strip()
+
+    def set_update_channel(self, channel: str) -> tuple[bool, str]:
+        if channel not in self.UPDATE_CHANNELS:
+            return False, _t("Invalid channel: {}", channel)
+        code, out, err = _run(
+            [self.BINARY, "config", "set", "update_channel", channel], timeout=10
+        )
+        if code == 0:
+            logger.info("Update channel set to %s", channel)
+            return True, out or _t("Update channel set to {}", channel)
+        msg = err or out or _t("Could not set update channel")
+        logger.error("set_update_channel(%s) failed: %s", channel, msg)
+        return False, msg
+
     # ── License ───────────────────────────────────────────────────────────
 
     def get_license(self) -> tuple[bool, str]:

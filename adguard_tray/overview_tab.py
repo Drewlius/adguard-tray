@@ -13,6 +13,7 @@ import re
 
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
+    QComboBox,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -68,6 +69,7 @@ class _RefreshWorker(QThread):
         data = {
             "status": self.cli.get_status(),
             "version": self.cli.get_version(),
+            "channel": self.cli.get_update_channel(),
         }
         ok, lic = self.cli.get_license()
         data["license_ok"] = ok
@@ -140,6 +142,30 @@ class OverviewTab(QWidget):
         info_btns.addStretch()
         il.addLayout(info_btns)
         layout.addWidget(grp_info)
+
+        # Update channel
+        grp_channel = QGroupBox(_t("Update channel"))
+        chl = QVBoxLayout(grp_channel)
+        ch_hint = QLabel(_t(
+            "<small>Controls which AdGuard CLI build <i>Check for CLI update</i> "
+            "will pull. Changes take effect on the next update run.</small>"
+        ))
+        ch_hint.setTextFormat(Qt.TextFormat.RichText)
+        ch_hint.setWordWrap(True)
+        chl.addWidget(ch_hint)
+
+        ch_row = QHBoxLayout()
+        ch_row.addWidget(QLabel(_t("Channel:")))
+        self.combo_channel = QComboBox()
+        for ch in self.cli.UPDATE_CHANNELS:
+            self.combo_channel.addItem(ch)
+        self.combo_channel.setEnabled(False)  # enabled after first refresh
+        self._channel_loaded = False
+        self.combo_channel.currentTextChanged.connect(self._on_channel_changed)
+        ch_row.addWidget(self.combo_channel)
+        ch_row.addStretch()
+        chl.addLayout(ch_row)
+        layout.addWidget(grp_channel)
 
         # HTTPS Certificate
         grp_cert = QGroupBox(_t("HTTPS Certificate"))
@@ -214,6 +240,18 @@ class OverviewTab(QWidget):
             self.lbl_license.setText(_t("License: {}",
                                         data["license"] or _t("Could not retrieve")))
 
+        # Update channel – load without firing currentTextChanged
+        channel = data.get("channel") or ""
+        self.combo_channel.blockSignals(True)
+        if channel and self.combo_channel.findText(channel) >= 0:
+            self.combo_channel.setCurrentText(channel)
+            self.combo_channel.setEnabled(True)
+        else:
+            # Unknown or unreadable – keep disabled, show first item
+            self.combo_channel.setEnabled(False)
+        self.combo_channel.blockSignals(False)
+        self._channel_loaded = True
+
     def _run_action(self, fn, on_done=None) -> None:
         self._set_busy(True)
         w = _Worker(fn)
@@ -234,6 +272,8 @@ class OverviewTab(QWidget):
         for btn in (self.btn_enable, self.btn_disable, self.btn_restart,
                     self.btn_update, self.btn_reset_license, self.btn_cert):
             btn.setEnabled(not busy)
+        # Only (re)enable the channel combo when we actually loaded a value
+        self.combo_channel.setEnabled(not busy and self._channel_loaded)
 
     def _do_enable(self) -> None:
         self._run_action(self.cli.start)
@@ -263,3 +303,9 @@ class OverviewTab(QWidget):
         self.lbl_result.setText(_t("Generating certificate…"))
         profile = self.edit_firefox_profile.text().strip()
         self._run_action(lambda: self.cli.generate_cert(firefox_profile=profile))
+
+    def _on_channel_changed(self, channel: str) -> None:
+        if not self._channel_loaded or not channel:
+            return
+        self.lbl_result.setText(_t("Switching update channel to {}…", channel))
+        self._run_action(lambda c=channel: self.cli.set_update_channel(c))
