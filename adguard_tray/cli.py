@@ -483,7 +483,7 @@ class AdGuardCLI:
         return False, msg
 
     def add_dns_filter(self, filter_id: str) -> tuple[bool, str]:
-        code, out, err = _run([self.BINARY, "dns", "filters", "add", filter_id], timeout=15)
+        code, out, err = _run([self.BINARY, "dns", "filters", "add", str(filter_id)], timeout=15)
         if code == 0 and not _is_cli_failure(out):
             return True, out or _t("DNS filter added")
         msg = err or out or _t("Could not add DNS filter")
