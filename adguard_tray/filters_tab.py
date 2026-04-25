@@ -415,19 +415,19 @@ class FiltersTab(QWidget):
         if f is None:
             return
 
+        # Built-in filters can't be removed/renamed via the CLI — no point
+        # offering actions that always fail. Show the menu only for custom.
+        if not f.is_custom:
+            return
         menu = QMenu(self)
-        if f.is_custom:
-            act_remove = menu.addAction(_t("Remove"))
-            act_remove.triggered.connect(lambda: self._remove_filter(fid))
-            act_rename = menu.addAction(_t("Rename…"))
-            act_rename.triggered.connect(lambda: self._rename_filter(fid))
-            act_trust = menu.addAction(_t("Set trusted"))
-            act_trust.triggered.connect(lambda: self._set_trusted(fid, True))
-            act_untrust = menu.addAction(_t("Set untrusted"))
-            act_untrust.triggered.connect(lambda: self._set_trusted(fid, False))
-        else:
-            act_remove = menu.addAction(_t("Remove"))
-            act_remove.triggered.connect(lambda: self._remove_filter(fid))
+        act_remove = menu.addAction(_t("Remove"))
+        act_remove.triggered.connect(lambda: self._remove_filter(fid))
+        act_rename = menu.addAction(_t("Rename…"))
+        act_rename.triggered.connect(lambda: self._rename_filter(fid))
+        act_trust = menu.addAction(_t("Set trusted"))
+        act_trust.triggered.connect(lambda: self._set_trusted(fid, True))
+        act_untrust = menu.addAction(_t("Set untrusted"))
+        act_untrust.triggered.connect(lambda: self._set_trusted(fid, False))
         menu.exec(self.tree.viewport().mapToGlobal(pos))
 
     def _remove_filter(self, fid: int) -> None:

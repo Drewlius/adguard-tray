@@ -27,7 +27,7 @@ def notify(
 ) -> None:
     """Send a desktop notification. Never raises."""
     try:
-        subprocess.run(
+        proc = subprocess.run(
             [
                 "notify-send",
                 "--app-name", APP_NAME,
@@ -40,7 +40,13 @@ def notify(
             capture_output=True,
             timeout=5,
         )
-        return
+        if proc.returncode == 0:
+            return
+        logger.debug(
+            "notify-send exited %d (%s) – falling back",
+            proc.returncode,
+            proc.stderr.decode("utf-8", errors="replace").strip(),
+        )
     except FileNotFoundError:
         logger.debug("notify-send not found – falling back to Qt tray bubble")
     except (subprocess.TimeoutExpired, OSError) as exc:

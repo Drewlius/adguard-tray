@@ -252,10 +252,10 @@ _DE: dict[str, str] = {
     "HTTPS Filtering":                  "HTTPS-Filterung",
     "Enable HTTPS filtering":           "HTTPS-Filterung aktivieren",
     "Decrypt and filter HTTPS traffic.\n"
-    "Required for high-quality ad blocking on encrypted sites.\n"
+    "Needed to block ads on https sites.\n"
     "Requires a trusted root certificate installed on the system.":
         "HTTPS-Traffic entschlüsseln und filtern.\n"
-        "Erforderlich für effektive Werbeblockierung auf verschlüsselten Seiten.\n"
+        "Nötig, um Werbung auf https-Seiten zu blockieren.\n"
         "Benötigt ein installiertes Root-Zertifikat auf dem System.",
     "Enable TLS 1.3":                   "TLS 1.3 aktivieren",
     "Enable TLS 1.3 support for filtered connections.":
@@ -266,9 +266,9 @@ _DE: dict[str, str] = {
         "HTTP/3 (QUIC)-Traffic filtern.\nExperimentell – kann bei manchen Seiten Probleme verursachen.",
     "OCSP certificate checks":          "OCSP-Zertifikatsprüfung",
     "Check certificate revocation status via OCSP.\n"
-    "Improves security but may slightly increase connection latency.":
+    "Slower but more secure.":
         "Zertifikatswiderruf per OCSP prüfen.\n"
-        "Verbessert die Sicherheit, kann aber die Verbindungslatenz leicht erhöhen.",
+        "Langsamer, aber sicherer.",
     "Enforce Certificate Transparency": "Certificate Transparency erzwingen",
     "Enforce Certificate Transparency timestamp checks.\n"
     "Similar to Chrome's built-in CT policy.":
@@ -320,7 +320,7 @@ _DE: dict[str, str] = {
     "Remove ECH parameter from SVCB/HTTPS DNS records.\n"
     "Enable only for browsers that don't auto-detect HTTPS filtering.":
         "ECH-Parameter aus SVCB/HTTPS-DNS-Einträgen entfernen.\n"
-        "Nur aktivieren für Browser die HTTPS-Filterung nicht automatisch erkennen.",
+        "Nur aktivieren für Browser, die HTTPS-Filterung nicht automatisch erkennen.",
     "Stealth Mode (Tracking Protection)":
         "Tarnmodus (Tracking-Schutz)",
     "Enable Stealth Mode":              "Tarnmodus aktivieren",
@@ -335,24 +335,24 @@ _DE: dict[str, str] = {
         "0 = sofort blockieren. Standard: 180 Minuten.",
     "Block first-party cookies":        "Erstanbieter-Cookies blockieren",
     "Delete all cookies (including first-party) after a set time.\n"
-    "Warning: This will log you out of all sites!":
+    "Warning: this logs you out of every site.":
         "Alle Cookies (inkl. Erstanbieter) nach einer bestimmten Zeit löschen.\n"
-        "Warnung: Du wirst auf allen Seiten ausgeloggt!",
+        "Warnung: du wirst überall ausgeloggt.",
     "0 = block immediately. Default: 4320 minutes (3 days).":
         "0 = sofort blockieren. Standard: 4320 Minuten (3 Tage).",
     "Privacy":                          "Privatsphäre",
     "Hide / reduce User-Agent":         "User-Agent verstecken / reduzieren",
-    "Reduces the User-Agent header to remove identifying information.\n"
-    "Helps prevent browser fingerprinting.":
-        "Reduziert den User-Agent-Header um identifizierende Informationen zu entfernen.\n"
-        "Hilft gegen Browser-Fingerprinting.",
+    "Strips identifying bits from the User-Agent.\n"
+    "Reduces fingerprinting.":
+        "Kürzt den User-Agent.\n"
+        "Hilft gegen Fingerprinting.",
     "Hide search queries in referrer":  "Suchanfragen im Referrer verstecken",
     "Hides your search terms when clicking from a search engine to a website.":
         "Versteckt deine Suchbegriffe beim Klick von einer Suchmaschine auf eine Webseite.",
     "Remove referrer from third-party requests":
         "Referrer aus Drittanbieter-Anfragen entfernen",
     "Prevents third-party sites from knowing which page you came from.":
-        "Verhindert dass Drittanbieter-Seiten wissen von welcher Seite du kommst.",
+        "Verhindert, dass Drittanbieter-Seiten sehen, von welcher Seite du kommst.",
     "Send Do-Not-Track signal":         "Do-Not-Track-Signal senden",
     "Sends DNT header with requests.\nNote: Most sites ignore this, but some respect it.":
         "Sendet DNT-Header mit Anfragen.\nHinweis: Die meisten Seiten ignorieren dies.",
@@ -368,8 +368,8 @@ _DE: dict[str, str] = {
         "Entfernt den X-Client-Data-Header den Chrome an Google-Dienste sendet.",
     "Browser API Blocking":             "Browser-API-Blockierung",
     "Block WebRTC":                     "WebRTC blockieren",
-    "Prevents IP leaks via WebRTC.\nWarning: May break video calls and some web apps!":
-        "Verhindert IP-Leaks über WebRTC.\nWarnung: Kann Videoanrufe und Web-Apps beeinträchtigen!",
+    "Prevents IP leaks via WebRTC.\nMay break video calls and some web apps.":
+        "Verhindert IP-Leaks über WebRTC.\nKann Videoanrufe und Web-Apps stören.",
     "Block Push API":                   "Push-API blockieren",
     "Blocks browser push notifications from websites.":
         "Blockiert Browser-Push-Benachrichtigungen von Webseiten.",
@@ -377,8 +377,8 @@ _DE: dict[str, str] = {
     "Prevents websites from accessing your GPS location.":
         "Verhindert den Zugriff von Webseiten auf deinen GPS-Standort.",
     "Block Flash":                      "Flash blockieren",
-    "Blocks Flash plugin to reduce security vulnerabilities.":
-        "Blockiert das Flash-Plugin zur Reduzierung von Sicherheitslücken.",
+    "Blocks the Flash plugin.":
+        "Blockiert das Flash-Plugin.",
     "Block Java":                       "Java blockieren",
     "Disables Java plugins. JavaScript remains enabled.":
         "Deaktiviert Java-Plugins. JavaScript bleibt aktiviert.",
@@ -416,8 +416,8 @@ _DE: dict[str, str] = {
         "Warnt vor bösartigen und Phishing-Webseiten.\n"
         "Nutzt die Safe-Browsing-Datenbank von AdGuard.",
     "Send anonymous statistics":        "Anonyme Statistiken senden",
-    "Help improve Safe Browsing by sending anonymous lookup statistics.":
-        "Safe Browsing verbessern durch Senden anonymer Abfragestatistiken.",
+    "Send anonymous lookups to AdGuard.":
+        "Anonyme Abfragen an AdGuard schicken.",
     "CRLite":                           "CRLite",
     "Enable CRLite":                    "CRLite aktivieren",
     "Certificate revocation checking using Mozilla's CRLite.\n"
@@ -647,19 +647,20 @@ _DE: dict[str, str] = {
     "  curl -fsSL https://raw.githubusercontent.com/AdguardTeam/AdGuardCLI/release/install.sh | sh -s -- -v\n\n"
     "Alternative (Arch Linux AUR):\n"
     "  paru -S adguard-cli-bin\n\n"
-    "The application will start but protection controls will not work until adguard-cli is installed.":
-        "adguard-cli konnte auf diesem System nicht gefunden werden.\n\n"
+    "Tray loads, but start/stop won't work until adguard-cli is installed.":
+        "adguard-cli wurde auf diesem System nicht gefunden.\n\n"
         "Empfohlene Installation (offiziell):\n"
         "  curl -fsSL https://raw.githubusercontent.com/AdguardTeam/AdGuardCLI/release/install.sh | sh -s -- -v\n\n"
         "Alternative (Arch Linux AUR):\n"
         "  paru -S adguard-cli-bin\n\n"
-        "Die Anwendung startet, aber Schutzfunktionen sind erst nach der Installation von adguard-cli verfügbar.",
+        "Das Tray läuft, aber Start/Stop geht erst nach der Installation von adguard-cli.",
     "Copy install command":             "Installationsbefehl kopieren",
     "Continue":                         "Weiter",
     "AdGuard Tray is already running":  "AdGuard Tray läuft bereits",
     "Only one instance can run at a time. Check your system tray.":
         "Es kann nur eine Instanz gleichzeitig laufen. Schau in den System-Tray.",
     "Authentication cancelled":         "Authentifizierung abgebrochen",
+    "polkit helper missing":            "polkit-Helper fehlt",
     "URL must start with http:// or https://":
         "URL muss mit http:// oder https:// beginnen",
     "Log level and CLI path changes apply after a restart.":

@@ -52,16 +52,22 @@ class _LoadWorker(QThread):
 class _ToggleWorker(QThread):
     done = pyqtSignal(bool, str, int, bool)
 
-    def __init__(self, cli, fid, add):
+    def __init__(self, cli, fid, enable, was_added):
         super().__init__()
         self.cli = cli
         self.fid = fid
-        self.add = add
+        self.enable = enable
+        self.was_added = was_added
 
     def run(self):
-        fn = self.cli.add_dns_filter if self.add else self.cli.disable_dns_filter
+        if self.enable:
+            # Already in the list → just flip the enabled flag. Otherwise
+            # bring it in via `dns filters add` (the --all view).
+            fn = self.cli.enable_dns_filter if self.was_added else self.cli.add_dns_filter
+        else:
+            fn = self.cli.disable_dns_filter
         ok, msg = fn(self.fid)
-        self.done.emit(ok, msg, self.fid, self.add)
+        self.done.emit(ok, msg, self.fid, self.enable)
 
 
 class _RemoveWorker(QThread):
@@ -248,10 +254,11 @@ class DnsFiltersTab(QWidget):
         fid = item.data(0, Qt.ItemDataRole.UserRole)
         if fid is None:
             return
-        add = item.checkState(0) == Qt.CheckState.Checked
+        enable = item.checkState(0) == Qt.CheckState.Checked
+        was_added = self._filter_map[fid].is_added if fid in self._filter_map else False
         self._set_busy(True)
         self.tree.itemChanged.disconnect(self._on_item_changed)
-        w = _ToggleWorker(self.cli, fid, add)
+        w = _ToggleWorker(self.cli, fid, enable, was_added)
         w.done.connect(self._on_toggle_done)
         w.finished.connect(lambda: self._workers.remove(w) if w in self._workers else None)
         self._workers.append(w)

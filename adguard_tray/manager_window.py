@@ -24,7 +24,14 @@ logger = logging.getLogger(__name__)
 
 
 class ManagerWindow(QMainWindow):
-    def __init__(self, cli: AdGuardCLI, config: Config, on_restart=None, parent=None) -> None:
+    def __init__(
+        self,
+        cli: AdGuardCLI,
+        config: Config,
+        on_restart=None,
+        parent=None,
+        initial_tab: int = 0,
+    ) -> None:
         super().__init__(parent)
         self.cli = cli
         self.config = config
@@ -36,6 +43,11 @@ class ManagerWindow(QMainWindow):
         self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
 
         self._build_ui()
+        self.set_current_tab(initial_tab)
+
+    def set_current_tab(self, index: int) -> None:
+        if 0 <= index < self.tabs.count():
+            self.tabs.setCurrentIndex(index)
 
     def _build_ui(self) -> None:
         self.tabs = QTabWidget()

@@ -43,7 +43,7 @@ def _make_icon(
     path.lineTo(m, m + s * 0.18)                     # left mid
     path.closeSubpath()
 
-    # Drop shadow (subtle)
+    # drop shadow
     p.save()
     p.translate(s * 0.03, s * 0.04)
     p.fillPath(path, QColor(0, 0, 0, 45))

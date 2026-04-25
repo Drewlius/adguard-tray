@@ -51,7 +51,7 @@ def _load_yaml() -> dict:
     """Load proxy.yaml preserving all keys."""
     try:
         return yaml.safe_load(_PROXY_YAML.read_text(encoding="utf-8")) or {}
-    except Exception as exc:
+    except (OSError, yaml.YAMLError) as exc:
         logger.error("Failed to load proxy.yaml: %s", exc)
         return {}
 
@@ -264,7 +264,7 @@ class ProxyConfigDialog(QDialog):
         self.cb_https.setChecked(_get(https, "enabled", default=True))
         self.cb_https.setToolTip(_t(
             "Decrypt and filter HTTPS traffic.\n"
-            "Required for high-quality ad blocking on encrypted sites.\n"
+            "Needed to block ads on https sites.\n"
             "Requires a trusted root certificate installed on the system."
         ))
         form.addWidget(self.cb_https)
@@ -286,7 +286,7 @@ class ProxyConfigDialog(QDialog):
         self.cb_ocsp.setChecked(_get(https, "ocsp_check_enabled", default=True))
         self.cb_ocsp.setToolTip(_t(
             "Check certificate revocation status via OCSP.\n"
-            "Improves security but may slightly increase connection latency."
+            "Slower but more secure."
         ))
         form.addWidget(self.cb_ocsp)
 
@@ -445,7 +445,7 @@ class ProxyConfigDialog(QDialog):
         self.cb_block_1p_cookies.setChecked(_get(sm, "block_first_party_cookies", default=False))
         self.cb_block_1p_cookies.setToolTip(_t(
             "Delete all cookies (including first-party) after a set time.\n"
-            "Warning: This will log you out of all sites!"
+            "Warning: this logs you out of every site."
         ))
         fc.addWidget(self.cb_block_1p_cookies)
 
@@ -468,8 +468,8 @@ class ProxyConfigDialog(QDialog):
         self.cb_hide_ua = QCheckBox(_t("Hide / reduce User-Agent"))
         self.cb_hide_ua.setChecked(_get(sm, "hide_user_agent", default=True))
         self.cb_hide_ua.setToolTip(_t(
-            "Reduces the User-Agent header to remove identifying information.\n"
-            "Helps prevent browser fingerprinting."
+            "Strips identifying bits from the User-Agent.\n"
+            "Reduces fingerprinting."
         ))
         fp.addWidget(self.cb_hide_ua)
 
@@ -528,7 +528,7 @@ class ProxyConfigDialog(QDialog):
         self.cb_webrtc.setChecked(_get(sm, "block_web_rtc", default=False))
         self.cb_webrtc.setToolTip(_t(
             "Prevents IP leaks via WebRTC.\n"
-            "Warning: May break video calls and some web apps!"
+            "May break video calls and some web apps."
         ))
         fa.addWidget(self.cb_webrtc)
 
@@ -544,7 +544,7 @@ class ProxyConfigDialog(QDialog):
 
         self.cb_flash = QCheckBox(_t("Block Flash"))
         self.cb_flash.setChecked(_get(sm, "block_browser_flash", default=True))
-        self.cb_flash.setToolTip(_t("Blocks Flash plugin to reduce security vulnerabilities."))
+        self.cb_flash.setToolTip(_t("Blocks the Flash plugin."))
         fa.addWidget(self.cb_flash)
 
         self.cb_java = QCheckBox(_t("Block Java"))
@@ -763,7 +763,7 @@ class ProxyConfigDialog(QDialog):
         self.cb_sb_stats = QCheckBox(_t("Send anonymous statistics"))
         self.cb_sb_stats.setChecked(_get(sb, "send_anonymous_statistics", default=False))
         self.cb_sb_stats.setToolTip(_t(
-            "Help improve Safe Browsing by sending anonymous lookup statistics."
+            "Send anonymous lookups to AdGuard."
         ))
         form.addWidget(self.cb_sb_stats)
 

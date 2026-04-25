@@ -34,6 +34,8 @@ logger = logging.getLogger(__name__)
 
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 _PORT_RE = re.compile(r"127\.0\.0\.1:(\d+)")
+_RUNNING_RE = re.compile(r"\b(is running|has started)\b")
+_STOPPED_RE = re.compile(r"\b(is not running|has been stopped)\b")
 
 
 def _strip_ansi(text: str) -> str:
@@ -81,10 +83,14 @@ class StatusResult:
 def _run(args: list[str], timeout: int = 15, stdin_data: str | None = None) -> tuple[int, str, str]:
     try:
         r = subprocess.run(
-            args, capture_output=True, text=True, timeout=timeout,
-            input=stdin_data,
+            args, capture_output=True, timeout=timeout,
+            input=stdin_data.encode("utf-8") if stdin_data else None,
         )
-        return r.returncode, _strip_ansi(r.stdout.strip()), _strip_ansi(r.stderr.strip())
+        # Decode explicitly so a C-locale runtime (systemd unit, cron) doesn't
+        # crash on filter titles with umlauts or CJK.
+        out = r.stdout.decode("utf-8", errors="replace").strip()
+        err = r.stderr.decode("utf-8", errors="replace").strip()
+        return r.returncode, _strip_ansi(out), _strip_ansi(err)
     except FileNotFoundError:
         return -1, "", f"Binary not found: {args[0]}"
     except subprocess.TimeoutExpired:
@@ -136,14 +142,10 @@ class AdGuardCLI:
         proxy_port = port_match.group(1) if port_match else ""
         filtering_enabled = "enabled" in combined
 
-        if "is running" in combined or "has started" in combined:
+        if _RUNNING_RE.search(combined):
             return StatusResult(AdGuardStatus.ACTIVE, out, out, proxy_port, filtering_enabled)
 
-        if (
-            "is not running" in combined
-            or "has been stopped" in combined
-            or "stopped" in combined
-        ):
+        if _STOPPED_RE.search(combined):
             # adguard-cli may lack a PID file when managed by systemd → verify
             fallback = self._systemctl_fallback(out)
             if fallback.status == AdGuardStatus.ACTIVE:
@@ -168,7 +170,7 @@ class AdGuardCLI:
     def start(self) -> tuple[bool, str]:
         ok, msg = self._privileged_command("start")
         if not ok and "socket busy" in msg.lower():
-            # Stale socket from a previous unclean stop – kill and retry
+            # Stale socket from a previous unclean stop – kill and retry.
             logger.warning("Socket busy on start, cleaning up stale processes")
             self._force_kill()
             time.sleep(0.5)
@@ -212,7 +214,16 @@ class AdGuardCLI:
         return False, _t("Could not stop AdGuard – process may still be running")
 
     def restart(self) -> tuple[bool, str]:
-        return self._privileged_command("restart")
+        ok, msg = self._privileged_command("restart")
+        if not ok:
+            return ok, msg
+        # `adguard-cli restart` doesn't always start a stopped proxy. Verify
+        # and fall back to `start` if the service didn't come up.
+        time.sleep(1)
+        if self.get_status().status != AdGuardStatus.ACTIVE:
+            logger.info("restart left the proxy inactive – calling start")
+            return self.start()
+        return ok, msg
 
     def toggle(self) -> tuple[bool, str]:
         s = self.get_status()
@@ -242,9 +253,12 @@ class AdGuardCLI:
         # pkexec exits 126 when the user cancels or fails authentication,
         # 127 when the helper binary is missing. Surface that directly
         # instead of falling through to systemctl, which would prompt again.
-        if code2 in (126, 127):
-            logger.info("pkexec authentication cancelled/failed (exit %d)", code2)
+        if code2 == 126:
+            logger.info("pkexec authentication cancelled (exit 126)")
             return False, _t("Authentication cancelled")
+        if code2 == 127:
+            logger.error("pkexec helper missing (exit 127)")
+            return False, _t("polkit helper missing")
 
         logger.debug("pkexec adguard-cli %s failed (exit %d) – trying systemctl", cmd, code2)
 
@@ -257,8 +271,10 @@ class AdGuardCLI:
             if code3 == 0:
                 logger.info("systemctl %s adguard-cli succeeded (pkexec)", systemctl_cmd)
                 return True, _t("AdGuard via systemctl {} ok", systemctl_cmd)
-            if code3 in (126, 127):
+            if code3 == 126:
                 return False, _t("Authentication cancelled")
+            if code3 == 127:
+                return False, _t("polkit helper missing")
             final_err = err3 or out3
         else:
             final_err = err2 or out2 or err or out
@@ -347,18 +363,23 @@ class AdGuardCLI:
             return UserscriptListResult(error=err or out or _t("Could not retrieve userscript list"))
         parsed = _parse_userscript_list(out)
 
-        # Build filesystem inventory: real_id → (real_id, title)
+        # Build filesystem inventory: real_id → (real_id, title).
+        # Wrap the glob too — if the dir is unreadable we'd otherwise hang the
+        # load worker on an uncaught PermissionError.
         real: list[tuple[str, str]] = []
-        if _USERSCRIPTS_DIR.is_dir():
-            for meta in sorted(_USERSCRIPTS_DIR.glob("*.meta.json")):
-                real_id = meta.name[: -len(".meta.json")]
-                title = real_id
-                try:
-                    data = json.loads(meta.read_text(encoding="utf-8"))
-                    title = data.get("name") or real_id
-                except (OSError, json.JSONDecodeError) as exc:
-                    logger.debug("meta.json read failed for %s: %s", meta, exc)
-                real.append((real_id, title))
+        try:
+            if _USERSCRIPTS_DIR.is_dir():
+                for meta in sorted(_USERSCRIPTS_DIR.glob("*.meta.json")):
+                    real_id = meta.name[: -len(".meta.json")]
+                    title = real_id
+                    try:
+                        data = json.loads(meta.read_text(encoding="utf-8"))
+                        title = data.get("name") or real_id
+                    except (OSError, json.JSONDecodeError) as exc:
+                        logger.debug("meta.json read failed for %s: %s", meta, exc)
+                    real.append((real_id, title))
+        except OSError as exc:
+            logger.warning("Could not list userscripts dir %s: %s", _USERSCRIPTS_DIR, exc)
 
         if not real:
             # Filesystem not accessible – fall back to parsed list (may have
@@ -370,8 +391,10 @@ class AdGuardCLI:
         used: set[str] = set()
         for entry in parsed.scripts:
             pid = entry.name
-            # CLI appends "..." when the ID was truncated.
-            truncated = pid.endswith("...")
+            # CLI appends "..." when the ID was truncated. Require a
+            # non-trivial visible prefix so a literal id ending in "..."
+            # isn't mis-flagged.
+            truncated = pid.endswith("...") and len(pid) > 13
             prefix = pid[:-3] if truncated else pid
             match: tuple[str, str] | None = None
             for real_id, title in real:
@@ -444,6 +467,14 @@ class AdGuardCLI:
         if code != 0:
             return FilterListResult(error=err or out or _t("Could not retrieve DNS filter list"))
         return _parse_filter_list(out)
+
+    def enable_dns_filter(self, filter_id: int) -> tuple[bool, str]:
+        code, out, err = _run([self.BINARY, "dns", "filters", "enable", str(filter_id)], timeout=15)
+        if code == 0 and not _is_cli_failure(out):
+            return True, out or _t("DNS filter {} enabled", filter_id)
+        msg = err or out or _t("Could not enable DNS filter {}", filter_id)
+        logger.error("enable_dns_filter(%s) failed: %s", filter_id, msg)
+        return False, msg
 
     def disable_dns_filter(self, filter_id: int) -> tuple[bool, str]:
         code, out, err = _run([self.BINARY, "dns", "filters", "disable", str(filter_id)], timeout=15)
@@ -664,6 +695,9 @@ class FilterEntry:
     last_update: str  # raw timestamp string, may be empty
     group: str = ""
     is_custom: bool = False
+    # True if the filter is in the active list. False only for rows that
+    # only appear in `filters list --all` because they're not added yet.
+    is_added: bool = True
 
 
 @dataclass
@@ -770,6 +804,7 @@ def _parse_filter_list(raw: str) -> FilterListResult:
             enabled_ch = m.group("enabled")
             # None = not-added filter (no checkbox), " " = disabled, "x" = enabled
             enabled = enabled_ch == "x"
+            is_added = enabled_ch is not None
             fid = int(m.group("id"))
             rest = m.group("rest").strip()
 
@@ -791,12 +826,14 @@ def _parse_filter_list(raw: str) -> FilterListResult:
                 last_update=last_update,
                 group=current_group,
                 is_custom=(fid < 0),
+                is_added=is_added,
             )
             result.groups.setdefault(current_group, []).append(entry)
         else:
-            # Non-filter line without leading spaces/pipes = group header
-            # (avoids picking up "To view the full list…" footer)
-            if not line.startswith("|") and not line.startswith("To "):
+            # Non-filter line without `|` is either a group header or a footer.
+            # CLI footers wrap to multiple lines and tend to be long; group
+            # names are short. Use length as the structural cue (locale-safe).
+            if "|" not in line and len(line) <= 40:
                 current_group = line
                 logger.debug("Filter group: %r", current_group)
 

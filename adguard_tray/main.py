@@ -32,17 +32,24 @@ LOCK_FILE = CONFIG_DIR / "adguard-tray.lock"
 
 
 def _setup_logging(level: str) -> None:
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
     numeric = getattr(logging, level.upper(), logging.INFO)
     fmt = "%(asctime)s [%(levelname)-8s] %(name)s: %(message)s"
     datefmt = "%Y-%m-%d %H:%M:%S"
 
-    handlers: list[logging.Handler] = [
-        logging.StreamHandler(sys.stdout),
-        logging.handlers.RotatingFileHandler(
-            LOG_FILE, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"
-        ),
-    ]
+    handlers: list[logging.Handler] = [logging.StreamHandler(sys.stdout)]
+
+    # Best-effort file logging — read-only home or full disk shouldn't kill
+    # the tray before the user even sees the icon.
+    try:
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+        handlers.append(
+            logging.handlers.RotatingFileHandler(
+                LOG_FILE, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"
+            )
+        )
+    except OSError as exc:
+        print(f"adguard-tray: could not open log file ({exc}); stderr only", file=sys.stderr)
+
     logging.basicConfig(level=numeric, format=fmt, datefmt=datefmt, handlers=handlers)
 
 
@@ -75,18 +82,27 @@ def main() -> None:
     # Keep the lock object alive for the app's lifetime
     app._adguard_lock = lock  # type: ignore[attr-defined]
 
-    # Check system tray availability
+    # System tray availability is checked but not enforced. Some bars
+    # (quickshell, niri's, occasionally waybar) register the SNI host a few
+    # seconds after the user session starts. Qt's QSystemTrayIcon registers
+    # itself over D-Bus, so the icon will appear once the host shows up —
+    # we just need to not exit before then. See issue #3.
     if not QSystemTrayIcon.isSystemTrayAvailable():
-        logger.error("System tray not available")
-        _fatal_dialog(
-            _t("System tray not available"),
-            _t(
-                "The system tray is not available in this desktop environment.\n\n"
-                "On Hyprland: waybar with the [tray] module enabled or sfwbar is required.\n"
-                "On KDE Plasma it should just work."
-            ),
+        logger.warning(
+            "System tray host not registered yet — bar may still be loading. "
+            "Tray icon will appear once a host (waybar tray, plasmashell, "
+            "GNOME AppIndicator, …) shows up."
         )
-        sys.exit(1)
+
+        def _late_check() -> None:
+            if not QSystemTrayIcon.isSystemTrayAvailable():
+                logger.warning(
+                    "Still no system tray host after 30s — check that your "
+                    "bar exposes one (waybar tray module, GNOME AppIndicator "
+                    "extension, …)."
+                )
+
+        QTimer.singleShot(30_000, _late_check)
 
     # Resolve executable path for autostart .desktop generation
     exec_path = _resolve_exec()
@@ -129,7 +145,7 @@ _INSTALL_CMD = "curl -fsSL https://raw.githubusercontent.com/AdguardTeam/AdGuard
 
 
 def _dependency_doctor(cli: AdGuardCLI) -> None:
-    """Show a helpful dialog when adguard-cli is not found. Non-blocking: app continues regardless."""
+    """Show a dialog if adguard-cli is missing. Non-blocking."""
     binary = cli.BINARY
     if shutil.which(binary):
         return
@@ -145,7 +161,7 @@ def _dependency_doctor(cli: AdGuardCLI) -> None:
         "  curl -fsSL https://raw.githubusercontent.com/AdguardTeam/AdGuardCLI/release/install.sh | sh -s -- -v\n\n"
         "Alternative (Arch Linux AUR):\n"
         "  paru -S adguard-cli-bin\n\n"
-        "The application will start but protection controls will not work until adguard-cli is installed."
+        "Tray loads, but start/stop won't work until adguard-cli is installed."
     ))
     btn_copy = QPushButton(_t("Copy install command"))
     btn_continue = QPushButton(_t("Continue"))
@@ -157,18 +173,6 @@ def _dependency_doctor(cli: AdGuardCLI) -> None:
         clipboard = QApplication.clipboard()
         if clipboard:
             clipboard.setText(_INSTALL_CMD)
-
-
-def _fatal_dialog(title: str, message: str) -> None:
-    """Show a modal error dialog when the tray can't start."""
-    try:
-        msg = QMessageBox()
-        msg.setWindowTitle(title)
-        msg.setText(message)
-        msg.setIcon(QMessageBox.Icon.Critical)
-        msg.exec()
-    except Exception:
-        print(f"FATAL: {title}\n{message}", file=sys.stderr)
 
 
 def _info_dialog(title: str, message: str) -> None:

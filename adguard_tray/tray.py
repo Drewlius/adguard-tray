@@ -85,6 +85,9 @@ _STATUS_ICON = {
 class _ActionSignals(QObject):
     done = pyqtSignal(bool, str)
 
+    def __init__(self, parent: QObject | None = None) -> None:
+        super().__init__(parent)
+
 class _ActionRunnable(QRunnable):
     def __init__(self, fn, signals: _ActionSignals) -> None:
         super().__init__()
@@ -152,12 +155,24 @@ class AdGuardTray(QSystemTrayIcon):
         self._bg_threads: list[QThread] = []  # keep refs alive
         self._loading_filters = False
         self._loading_userscripts = False
-        self._last_notify_ts: float = 0.0
+        self._last_notify: tuple[AdGuardStatus, AdGuardStatus, float] | None = None
+        self._cli_version: str = ""
+
+        # Coalesce rapid-fire restart triggers (e.g. user flips 4 filters in a
+        # row → one pkexec prompt instead of four).
+        self._restart_pending = False
+        self._restart_debouncer = QTimer(self)
+        self._restart_debouncer.setSingleShot(True)
+        self._restart_debouncer.setInterval(500)
+        self._restart_debouncer.timeout.connect(self._fire_pending_restart)
 
         self._setup_icons()
         self._build_menu()
         self.activated.connect(self._on_activated)
         self.setVisible(True)
+        # Fetch CLI version off-thread so a slow `adguard-cli --version`
+        # doesn't stall the menu construction.
+        self._refresh_version_label_async()
 
         self.worker = StatusWorker(self.cli, config.refresh_interval)
         self.worker.status_updated.connect(self._on_status_result)
@@ -251,8 +266,15 @@ class AdGuardTray(QSystemTrayIcon):
         self._act_quit.triggered.connect(self.app.quit)
         menu.addAction(self._act_quit)
 
+        # Refresh the autostart checkbox each time the menu opens — picks up
+        # external changes (e.g. user removed the .desktop file by hand).
+        menu.aboutToShow.connect(self._refresh_dynamic_menu_state)
+
         self.setContextMenu(menu)
         self._update_menu_state(None)
+
+    def _refresh_dynamic_menu_state(self) -> None:
+        self._act_autostart.setChecked(_AUTOSTART_FILE.exists())
 
     def _update_menu_state(self, status: AdGuardStatus | None) -> None:
         is_active = status == AdGuardStatus.ACTIVE
@@ -424,10 +446,24 @@ class AdGuardTray(QSystemTrayIcon):
         self._update_menu_state(result.status)
 
         if old is not None and old != result.status and self.config.notifications_enabled:
+            # Dedup keyed on the (old, new) transition pair, not a single
+            # timestamp — that way ACTIVE→ERROR doesn't suppress a follow-up
+            # ERROR→INACTIVE within the window.
             now = time.monotonic()
-            if now - self._last_notify_ts >= 10.0:
-                self._last_notify_ts = now
+            last = self._last_notify
+            same_transition = (
+                last is not None
+                and last[0] == old
+                and last[1] == result.status
+                and now - last[2] < 10.0
+            )
+            if not same_transition:
+                self._last_notify = (old, result.status, now)
                 self._notify_change(old, result.status)
+
+        # If the CLI just (re)appeared, refresh the version label.
+        if (old == AdGuardStatus.NOT_INSTALLED) ^ (result.status == AdGuardStatus.NOT_INSTALLED):
+            self._refresh_version_label_async()
 
     def _notify_change(self, old: AdGuardStatus, new: AdGuardStatus) -> None:
         if new == AdGuardStatus.ACTIVE:
@@ -447,7 +483,9 @@ class AdGuardTray(QSystemTrayIcon):
     def _do_toggle(self) -> None:
         if self._busy: return
         self._set_busy(True)
-        self._run_async(self.cli.stop if self._last_status == AdGuardStatus.ACTIVE else self.cli.start)
+        # cli.toggle() re-reads live status before deciding, so a stale
+        # _last_status doesn't push us in the wrong direction.
+        self._run_async(self.cli.toggle)
 
     def _do_enable(self) -> None:
         if self._busy: return
@@ -465,9 +503,28 @@ class AdGuardTray(QSystemTrayIcon):
         self._run_async(self.cli.restart)
 
     def _run_async(self, fn) -> None:
-        sig = _ActionSignals()
+        # Parent the signals object to self so its lifetime is tied to the
+        # tray, not just to the runnable that's about to autodelete.
+        sig = _ActionSignals(self)
         sig.done.connect(self._on_action_done)
         QThreadPool.globalInstance().start(_ActionRunnable(fn, sig))
+
+    def _refresh_version_label_async(self) -> None:
+        sig = _ActionSignals(self)
+        sig.done.connect(self._on_version_fetched)
+
+        def _fetch() -> tuple[bool, str]:
+            try:
+                return True, self.cli.get_version()
+            except Exception as exc:  # noqa: BLE001
+                return False, str(exc)
+
+        QThreadPool.globalInstance().start(_ActionRunnable(_fetch, sig))
+
+    def _on_version_fetched(self, ok: bool, version: str) -> None:
+        if ok:
+            self._cli_version = version or ""
+        self._act_version.setText(self._version_label())
 
     def _on_action_done(self, ok: bool, msg: str) -> None:
         self._set_busy(False)
@@ -480,14 +537,29 @@ class AdGuardTray(QSystemTrayIcon):
         QTimer.singleShot(2000, self.worker.refresh)
 
     def _restart_cli_async(self) -> None:
-        """Restart adguard-cli after a config change and notify the user."""
+        """Schedule a debounced restart so rapid filter toggles coalesce."""
+        self._restart_pending = True
+        # Re-arm the timer on each call: as long as toggles keep coming in
+        # under 500ms, only one restart fires after the burst settles.
+        self._restart_debouncer.start()
+
+    def _fire_pending_restart(self) -> None:
+        if not self._restart_pending or self._busy:
+            # If something else is in flight, push it out a bit instead of
+            # racing — the next config change will re-arm us anyway.
+            if self._restart_pending and self._busy:
+                self._restart_debouncer.start()
+            return
+        self._restart_pending = False
+        self._set_busy(True)
         if self.config.notifications_enabled:
             notify("AdGuard Tray", _t("Restarting AdGuard…"), tray=self)
-        sig = _ActionSignals()
+        sig = _ActionSignals(self)
         sig.done.connect(self._on_restart_done)
         QThreadPool.globalInstance().start(_ActionRunnable(self.cli.restart, sig))
 
     def _on_restart_done(self, ok: bool, msg: str) -> None:
+        self._set_busy(False)
         if self.config.notifications_enabled:
             if ok:
                 notify("AdGuard Tray", _t("AdGuard restarted."), tray=self)
@@ -524,14 +596,16 @@ class AdGuardTray(QSystemTrayIcon):
 
     _manager_win = None
 
-    def _show_manager(self) -> None:
+    def _show_manager(self, initial_tab: int = 0) -> None:
         from .manager_window import ManagerWindow
         if self._manager_win is not None and self._manager_win.isVisible():
+            self._manager_win.set_current_tab(initial_tab)
             self._manager_win.raise_()
             self._manager_win.activateWindow()
             return
         self._manager_win = ManagerWindow(
             self.cli, self.config, on_restart=self._restart_cli_async,
+            initial_tab=initial_tab,
         )
         self._manager_win.show()
 
@@ -539,9 +613,8 @@ class AdGuardTray(QSystemTrayIcon):
 
     def _version_label(self) -> str:
         from . import __version__
-        cli_ver = self.cli.get_version()
-        if cli_ver:
-            return f"adguard-tray v{__version__} · CLI v{cli_ver}"
+        if self._cli_version:
+            return f"adguard-tray v{__version__} · CLI v{self._cli_version}"
         return f"adguard-tray v{__version__}"
 
     def _show_proxy_config(self) -> None:
@@ -559,14 +632,12 @@ class AdGuardTray(QSystemTrayIcon):
             self._act_autostart.setChecked(_AUTOSTART_FILE.exists())
 
     def _show_filters_dialog(self) -> None:
-        from .filters_dialog import FiltersDialog
-        dlg = FiltersDialog(self.cli, on_change=self._restart_cli_async, parent=None)
-        dlg.exec()
+        # Route to the Manager's Filters tab — the legacy modal lacked
+        # add-by-id, --trusted/--title, set-trusted, set-title, and --all.
+        self._show_manager(initial_tab=1)
 
     def _show_userscripts_dialog(self) -> None:
-        from .userscripts_dialog import UserscriptsDialog
-        dlg = UserscriptsDialog(self.cli, on_change=self._restart_cli_async, parent=None)
-        dlg.exec()
+        self._show_manager(initial_tab=3)
 
     def _show_exceptions_dialog(self) -> None:
         from .exceptions_dialog import ExceptionsDialog
@@ -588,7 +659,15 @@ class AdGuardTray(QSystemTrayIcon):
             self.worker.stop()
         except Exception:
             logger.exception("Error stopping worker")
+        # Hide the icon up-front so the user sees the tray go away even if
+        # threads take a moment to settle.
+        try:
+            self.setVisible(False)
+        except Exception:
+            pass
         for t in list(self._bg_threads):
             if t.isRunning():
                 t.quit()
                 t.wait(500)
+        # Don't let pkexec runnables outlive the event loop.
+        QThreadPool.globalInstance().waitForDone(500)

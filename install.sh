@@ -86,7 +86,7 @@ fi
 
 # ── Done ───────────────────────────────────────────────────────────────────
 echo ""
-green "✓ Installation complete!"
+green "✓ Installation complete"
 echo ""
 echo "  Run:        adguard-tray"
 echo "  Direct:     python3 ${LIB_DIR}/adguard-tray.py"
