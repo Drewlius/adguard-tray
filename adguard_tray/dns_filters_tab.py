@@ -60,7 +60,7 @@ class _ToggleWorker(QThread):
 
     def run(self):
         fn = self.cli.add_dns_filter if self.add else self.cli.disable_dns_filter
-        ok, msg = fn(str(self.fid))
+        ok, msg = fn(self.fid)
         self.done.emit(ok, msg, self.fid, self.add)
 
 

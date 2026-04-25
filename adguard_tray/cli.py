@@ -445,20 +445,12 @@ class AdGuardCLI:
             return FilterListResult(error=err or out or _t("Could not retrieve DNS filter list"))
         return _parse_filter_list(out)
 
-    def enable_dns_filter(self, filter_id: int) -> tuple[bool, str]:
-        code, out, err = _run([self.BINARY, "dns", "filters", "enable", str(filter_id)], timeout=15)
-        if code == 0 and not _is_cli_failure(out):
-            return True, out or _t("DNS filter {} enabled", filter_id)
-        msg = err or out or _t("Could not enable DNS filter {}", filter_id)
-        logger.error("enable_dns_filter(%d) failed: %s", filter_id, msg)
-        return False, msg
-
     def disable_dns_filter(self, filter_id: int) -> tuple[bool, str]:
         code, out, err = _run([self.BINARY, "dns", "filters", "disable", str(filter_id)], timeout=15)
         if code == 0 and not _is_cli_failure(out):
             return True, out or _t("DNS filter {} disabled", filter_id)
         msg = err or out or _t("Could not disable DNS filter {}", filter_id)
-        logger.error("disable_dns_filter(%d) failed: %s", filter_id, msg)
+        logger.error("disable_dns_filter(%s) failed: %s", filter_id, msg)
         return False, msg
 
     def install_dns_filter(self, url: str, title: str = "") -> tuple[bool, str]:
@@ -479,7 +471,7 @@ class AdGuardCLI:
         if code == 0:
             return True, out or _t("DNS filter {} removed", filter_id)
         msg = err or out or _t("Could not remove DNS filter {}", filter_id)
-        logger.error("remove_dns_filter(%d) failed: %s", filter_id, msg)
+        logger.error("remove_dns_filter(%s) failed: %s", filter_id, msg)
         return False, msg
 
     def add_dns_filter(self, filter_id: str) -> tuple[bool, str]:
