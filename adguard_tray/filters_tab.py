@@ -71,15 +71,21 @@ class _UpdateWorker(QThread):
 class _ToggleWorker(QThread):
     done = pyqtSignal(bool, str, int, bool)
 
-    def __init__(self, cli, fid, enable):
+    def __init__(self, cli, fid, enable, was_added=True):
         super().__init__()
         self.cli = cli
         self.fid = fid
         self.enable = enable
+        self.was_added = was_added
 
     def run(self):
-        fn = self.cli.enable_filter if self.enable else self.cli.disable_filter
-        ok, msg = fn(self.fid)
+        if self.enable and not self.was_added:
+            # CLI rejects `enable` on a not-added filter, so add it first.
+            ok, msg = self.cli.add_filter(str(self.fid))
+        elif self.enable:
+            ok, msg = self.cli.enable_filter(self.fid)
+        else:
+            ok, msg = self.cli.disable_filter(self.fid)
         self.done.emit(ok, msg, self.fid, self.enable)
 
 
@@ -288,12 +294,13 @@ class FiltersTab(QWidget):
         if fid is None:
             return
         enable = item.checkState(0) == Qt.CheckState.Checked
+        was_added = self._filter_map[fid].is_added if fid in self._filter_map else True
         self._set_busy(True)
         self.lbl_status.setText(
             _t("Enabling filter {}…", fid) if enable else _t("Disabling filter {}…", fid)
         )
         self.tree.itemChanged.disconnect(self._on_item_changed)
-        w = _ToggleWorker(self.cli, fid, enable)
+        w = _ToggleWorker(self.cli, fid, enable, was_added)
         w.done.connect(self._on_toggle_done)
         w.finished.connect(lambda: self._workers.remove(w) if w in self._workers else None)
         self._workers.append(w)
@@ -305,6 +312,8 @@ class FiltersTab(QWidget):
             self._mark_changed()
             if fid in self._filter_map:
                 self._filter_map[fid].enabled = new_enabled
+                if new_enabled:
+                    self._filter_map[fid].is_added = True
             self.lbl_status.setText(
                 _t("Filter {} enabled.", fid) if new_enabled else _t("Filter {} disabled.", fid)
             )

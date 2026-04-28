@@ -50,6 +50,7 @@ _FAILURE_KEYWORDS = (
     "failed to disable",
     "no userscripts matching",
     "no filters matching",
+    "before filters can be enabled",
 )
 
 
