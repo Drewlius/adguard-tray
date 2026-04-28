@@ -22,6 +22,15 @@ from .i18n import _t
 
 logger = logging.getLogger(__name__)
 
+# Tab indices used by callers that want to open a specific page.
+TAB_OVERVIEW = 0
+TAB_FILTERS = 1
+TAB_DNS_FILTERS = 2
+TAB_USERSCRIPTS = 3
+TAB_EXCEPTIONS = 4
+TAB_CONFIGURATION = 5
+TAB_DIAGNOSTICS = 6
+
 
 class ManagerWindow(QMainWindow):
     def __init__(

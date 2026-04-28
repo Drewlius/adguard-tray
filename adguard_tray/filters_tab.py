@@ -1,7 +1,9 @@
+
+
 """
 Filters tab for the Manager window.
 
-Enhanced version of filters_dialog with:
+Adds over the legacy filters dialog:
   - "Show all available" toggle
   - "Add by ID/name" button
   - Context menu: set-trusted, rename (set-title) for custom filters
@@ -324,7 +326,7 @@ class FiltersTab(QWidget):
 
     def _run_update(self) -> None:
         self._set_busy(True)
-        self.lbl_status.setText(_t("Updating filters…"))
+        self.lbl_status.setText(_t("Updating filters… (can take up to 2 minutes)"))
         self.update_output.hide()
         w = _UpdateWorker(self.cli)
         w.done.connect(self._on_update_done)
@@ -343,7 +345,7 @@ class FiltersTab(QWidget):
         self.update_output.show()
         self._load_filters()
 
-    # ── Custom filter install (enhanced) ──────────────────────────────────
+    # ── Custom filter install ─────────────────────────────────────────────
 
     def _add_custom_filter(self) -> None:
         dlg = _InstallFilterDialog(self)
@@ -351,6 +353,12 @@ class FiltersTab(QWidget):
             return
         url = dlg.url.strip()
         if not url:
+            return
+        if not url.lower().startswith(("http://", "https://")):
+            QMessageBox.warning(
+                self, _t("Invalid URL"),
+                _t("URL must start with http:// or https://"),
+            )
             return
         trusted = dlg.trusted
         title = dlg.title.strip()

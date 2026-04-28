@@ -196,7 +196,10 @@ class AdGuardCLI:
         from the user session.
         """
         for name in ("adguard-cli", "adguard_root_helper"):
-            _run(["pkill", "-x", name], timeout=5)
+            code, _, err = _run(["pkill", "-x", name], timeout=5)
+            # exit 1 means "no matching process" which is fine here
+            if code not in (0, 1):
+                logger.warning("pkill %s exit %d: %s", name, code, err)
         time.sleep(0.5)
         if self.get_status().status != AdGuardStatus.ACTIVE:
             logger.info("Force-kill succeeded (user)")
@@ -204,7 +207,9 @@ class AdGuardCLI:
 
         logger.warning("User-level pkill did not stop service, trying pkexec")
         for name in ("adguard-cli", "adguard_root_helper"):
-            _run(["pkexec", "pkill", "-x", name], timeout=30)
+            code, _, err = _run(["pkexec", "pkill", "-x", name], timeout=30)
+            if code not in (0, 1):
+                logger.warning("pkexec pkill %s exit %d: %s", name, code, err)
         time.sleep(0.5)
         if self.get_status().status != AdGuardStatus.ACTIVE:
             logger.info("Force-kill succeeded (pkexec)")
@@ -376,7 +381,7 @@ class AdGuardCLI:
                         data = json.loads(meta.read_text(encoding="utf-8"))
                         title = data.get("name") or real_id
                     except (OSError, json.JSONDecodeError) as exc:
-                        logger.debug("meta.json read failed for %s: %s", meta, exc)
+                        logger.warning("meta.json read failed for %s: %s", meta, exc)
                     real.append((real_id, title))
         except OSError as exc:
             logger.warning("Could not list userscripts dir %s: %s", _USERSCRIPTS_DIR, exc)
@@ -391,10 +396,10 @@ class AdGuardCLI:
         used: set[str] = set()
         for entry in parsed.scripts:
             pid = entry.name
-            # CLI appends "..." when the ID was truncated. Require a
-            # non-trivial visible prefix so a literal id ending in "..."
-            # isn't mis-flagged.
-            truncated = pid.endswith("...") and len(pid) > 13
+            # CLI appends "..." when the ID was truncated. Exact match is
+            # tried first below, so we don't lose IDs that legitimately end
+            # in "...".
+            truncated = pid.endswith("...")
             prefix = pid[:-3] if truncated else pid
             match: tuple[str, str] | None = None
             for real_id, title in real:

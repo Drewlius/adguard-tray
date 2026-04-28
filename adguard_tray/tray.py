@@ -632,12 +632,14 @@ class AdGuardTray(QSystemTrayIcon):
             self._act_autostart.setChecked(_AUTOSTART_FILE.exists())
 
     def _show_filters_dialog(self) -> None:
-        # Route to the Manager's Filters tab — the legacy modal lacked
+        # Route to the Manager's Filters tab. The legacy modal lacked
         # add-by-id, --trusted/--title, set-trusted, set-title, and --all.
-        self._show_manager(initial_tab=1)
+        from .manager_window import TAB_FILTERS
+        self._show_manager(initial_tab=TAB_FILTERS)
 
     def _show_userscripts_dialog(self) -> None:
-        self._show_manager(initial_tab=3)
+        from .manager_window import TAB_USERSCRIPTS
+        self._show_manager(initial_tab=TAB_USERSCRIPTS)
 
     def _show_exceptions_dialog(self) -> None:
         from .exceptions_dialog import ExceptionsDialog
@@ -665,9 +667,10 @@ class AdGuardTray(QSystemTrayIcon):
             self.setVisible(False)
         except Exception:
             pass
-        for t in list(self._bg_threads):
-            if t.isRunning():
-                t.quit()
-                t.wait(500)
-        # Don't let pkexec runnables outlive the event loop.
+        # Quit all first, then wait once. Sequential waits would stack.
+        running = [t for t in list(self._bg_threads) if t.isRunning()]
+        for t in running:
+            t.quit()
+        for t in running:
+            t.wait(500)
         QThreadPool.globalInstance().waitForDone(500)

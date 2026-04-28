@@ -121,6 +121,8 @@ _DE: dict[str, str] = {
     "Filter {} enabled.":                   "Filter {} aktiviert.",
     "Filter {} disabled.":                  "Filter {} deaktiviert.",
     "Updating filters…":                    "Filter werden aktualisiert…",
+    "Updating filters… (can take up to 2 minutes)":
+        "Filter werden aktualisiert… (kann bis zu 2 Minuten dauern)",
     "Update completed.":                    "Aktualisierung abgeschlossen.",
     "Update failed.":                       "Aktualisierung fehlgeschlagen.",
     "Add Custom Filter":                    "Eigenen Filter hinzufügen",
@@ -667,6 +669,8 @@ _DE: dict[str, str] = {
         "Log-Level und CLI-Pfad werden nach einem Neustart wirksam.",
     "adguard-cli path does not exist or is not executable.":
         "adguard-cli-Pfad existiert nicht oder ist nicht ausführbar.",
+    "That binary does not identify as adguard-cli. Save anyway?":
+        "Diese Datei meldet sich nicht als adguard-cli. Trotzdem speichern?",
     "Update channel":                   "Update-Channel",
     "Channel:":                         "Channel:",
     "<small>Controls which AdGuard CLI build <i>Check for CLI update</i> "

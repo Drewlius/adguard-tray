@@ -9,6 +9,7 @@ Manages:
 
 import logging
 import os
+import subprocess
 from pathlib import Path
 
 from PyQt6.QtCore import Qt
@@ -33,6 +34,16 @@ from .config import Config, save_config
 from .i18n import _t
 
 logger = logging.getLogger(__name__)
+
+
+def _looks_like_adguard_cli(path: str) -> bool:
+    try:
+        r = subprocess.run([path, "--version"], capture_output=True, timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    out = (r.stdout + r.stderr).decode("utf-8", errors="replace").lower()
+    return "adguard cli" in out
+
 
 _AUTOSTART_DIR = Path.home() / ".config" / "autostart"
 _AUTOSTART_FILE = _AUTOSTART_DIR / "adguard-tray.desktop"
@@ -168,6 +179,16 @@ class SettingsDialog(QDialog):
                 self,
                 _t("AdGuard Tray – Settings"),
                 _t("adguard-cli path does not exist or is not executable."),
+                QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Cancel,
+            )
+            if reply != QMessageBox.StandardButton.Save:
+                return
+        elif cli_path and not _looks_like_adguard_cli(cli_path):
+            reply = QMessageBox.warning(
+                self,
+                _t("AdGuard Tray – Settings"),
+                _t("That binary does not identify as adguard-cli. Save anyway?"),
                 QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Cancel,
                 QMessageBox.StandardButton.Cancel,
             )

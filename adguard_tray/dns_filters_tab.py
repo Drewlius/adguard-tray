@@ -270,6 +270,8 @@ class DnsFiltersTab(QWidget):
             self._mark_changed()
             if fid in self._filter_map:
                 self._filter_map[fid].enabled = new_enabled
+                if new_enabled:
+                    self._filter_map[fid].is_added = True
             self.lbl_status.setText(
                 _t("DNS filter {} enabled.", fid) if new_enabled else _t("DNS filter {} disabled.", fid)
             )
@@ -295,6 +297,12 @@ class DnsFiltersTab(QWidget):
             return
         url = dlg.url.strip()
         if not url:
+            return
+        if not url.lower().startswith(("http://", "https://")):
+            QMessageBox.warning(
+                self, _t("Invalid URL"),
+                _t("URL must start with http:// or https://"),
+            )
             return
         self._set_busy(True)
         self.lbl_status.setText(_t("Installing: {}", url))
