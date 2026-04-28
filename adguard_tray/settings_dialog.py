@@ -31,7 +31,7 @@ from PyQt6.QtWidgets import (
 )
 
 from .config import Config, save_config
-from .i18n import _t
+from .i18n import _t, _TRANSLATIONS, _CURRENT
 
 logger = logging.getLogger(__name__)
 
@@ -53,11 +53,17 @@ _DESKTOP_TEMPLATE = """\
 Type=Application
 Name=AdGuard Tray
 GenericName=AdGuard CLI Monitor
-Comment=System tray monitor for adguard-cli
+GenericName[de]=AdGuard CLI Überwachung
+GenericName[zh_CN]=AdGuard CLI 监视器
+Comment=System tray monitor and controller for adguard-cli
+Comment[de]=System tray Überwachung und Steuerung für adguard-cli
+Comment[zh_CN]=adguard-cli 的系统托盘监视器和控制器
 Exec={exec}
 Icon=security-high
 Categories=Network;Security;System;
-Keywords=adguard;dns;privacy;security;
+Keywords=adguard;dns;privacy;security;ad-blocker;filter;
+Keywords[de]=adguard;dns;privatsphäre;sicherheit;werbeblocker;filter;steuerung
+Keywords[zh_CN]=adguard;dns;隐私;安全;广告拦截;过滤器;控制器
 StartupNotify=false
 X-GNOME-Autostart-enabled=true
 """
@@ -157,6 +163,49 @@ class SettingsDialog(QDialog):
         auto_layout.addWidget(autostart_hint)
         layout.addWidget(grp_auto)
 
+        # ── Language ──────────────────────────────────────────────────
+        grp_lang = QGroupBox(_t("Language"))
+        lang_layout = QVBoxLayout(grp_lang)
+
+        self.combo_language = QComboBox()
+        # Map language codes to translation keys
+        self._lang_code_to_key = {
+            "en": "English",
+            "zh": "Simplified Chinese",
+            "de": "German",
+        }
+        # Add available languages
+        available_languages = ["en"] + list(_TRANSLATIONS.keys())
+        # Remove duplicates
+        available_languages = list(dict.fromkeys(available_languages))
+        for lang_code in available_languages:
+            key = self._lang_code_to_key.get(lang_code, lang_code)
+            display_name = _t(key)
+            self.combo_language.addItem(display_name, lang_code)
+
+        # Set current language
+        current_lang = self.config.language or ""
+        if not current_lang:
+            # Auto-detect: find the language that matches current _CURRENT
+            for code, trans_dict in _TRANSLATIONS.items():
+                if trans_dict is _CURRENT:
+                    current_lang = code
+                    break
+            if not current_lang:
+                current_lang = "en"
+        idx = self.combo_language.findData(current_lang)
+        if idx >= 0:
+            self.combo_language.setCurrentIndex(idx)
+
+        lang_layout.addWidget(self.combo_language)
+
+        hint = QLabel(_t("<small>Requires application restart to take effect.</small>"))
+        hint.setWordWrap(True)
+        hint.setTextFormat(Qt.TextFormat.RichText)
+        lang_layout.addWidget(hint)
+
+        layout.addWidget(grp_lang)
+
         # ── Buttons ────────────────────────────────────────────────────────
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
@@ -199,6 +248,7 @@ class SettingsDialog(QDialog):
         self.config.notifications_enabled = self.cb_notify.isChecked()
         self.config.log_level = self.combo_log.currentText()
         self.config.adguard_cli_path = cli_path
+        self.config.language = self.combo_language.currentData() or ""
         save_config(self.config)
         self._manage_autostart(self.cb_autostart.isChecked())
         self.accept()

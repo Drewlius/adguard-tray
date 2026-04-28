@@ -2,10 +2,16 @@
 Type=Application
 Name=AdGuard Tray
 GenericName=AdGuard CLI Monitor
+GenericName[de]=AdGuard CLI Überwachung und Steuerung
+GenericName[zh_CN]=AdGuard CLI 监视器和控制器
 Comment=System tray monitor and controller for adguard-cli
+Comment[de]=System tray Überwachung und Steuerung für adguard-cli
+Comment[zh_CN]=adguard-cli 的系统托盘监视器和控制器
 Exec=adguard-tray
 Icon=security-high
 Categories=Network;Security;System;
 Keywords=adguard;dns;privacy;security;ad-blocker;filter;
+Keywords[de]=adguard;dns;privatsphäre;sicherheit;werbeblocker;filter;steuerung
+Keywords[zh_CN]=adguard;dns;隐私;安全;广告拦截;过滤器;控制器
 StartupNotify=false
 NoDisplay=false
