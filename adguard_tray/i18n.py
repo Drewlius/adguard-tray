@@ -13,7 +13,25 @@ import os
 # ── Locale detection ──────────────────────────────────────────────────────
 
 def _detect_language() -> str:
-    """Return a 2-letter language code based on the system locale."""
+    """
+    Return a language code based on config file, then system locale.
+    Config file overrides system locale.
+    Empty string in config means auto-detect.
+    """
+    # First, check config file
+    try:
+        import json
+        from pathlib import Path
+        config_file = Path.home() / ".config" / "adguard-tray" / "config.json"
+        if config_file.exists():
+            data = json.loads(config_file.read_text(encoding="utf-8"))
+            lang = data.get("language", "")
+            if lang:  # Not empty string = use configured language
+                return lang
+    except Exception:
+        pass
+
+    # Fall back to system locale
     for var in ("LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"):
         val = os.environ.get(var, "")
         if val:
@@ -34,6 +52,16 @@ _LANG = _detect_language()
 # ── German translations ───────────────────────────────────────────────────
 
 _DE: dict[str, str] = {
+    # ── General ─────────────────────────────────────────────────────
+    "Language":                          "Sprache",
+    "English":                           "Englisch",
+    "Simplified Chinese":                "Chinesisch (Vereinfacht)",
+    "German":                            "Deutsch",
+    "Requires application restart to take effect.":
+        "Erfordert einen Neustart der Anwendung.",
+    "<small>Requires application restart to take effect.</small>":
+        "<small>Erfordert einen Neustart der Anwendung.</small>",
+
     # ── tray.py – status labels ───────────────────────────────────────────
     "Active – Protection running":          "Aktiv – Schutz läuft",
     "Inactive – Protection stopped":        "Inaktiv – Schutz gestoppt",
@@ -567,6 +595,8 @@ _DE: dict[str, str] = {
     "Could not load proxy.yaml.":       "proxy.yaml konnte nicht geladen werden.",
     "Edit the full AdGuard CLI configuration (proxy.yaml).":
         "Die vollständige AdGuard-CLI-Konfiguration (proxy.yaml) bearbeiten.",
+    "<small>Edit the full AdGuard CLI configuration (proxy.yaml).</small>":
+        "<small>Die vollständige AdGuard-CLI-Konfiguration (proxy.yaml) bearbeiten.</small>",
     "Open Configuration Editor…":       "Konfigurations-Editor öffnen…",
 
     # ── diagnostics_tab.py ───────────────────────────────────────────────
@@ -634,6 +664,9 @@ _DE: dict[str, str] = {
     "Update check failed":              "Update-Prüfung fehlgeschlagen",
     "Benchmark failed":                 "Benchmark fehlgeschlagen",
     "Open Manager…":                    "Manager öffnen…",
+    "AdGuard stopped (forced)":         "AdGuard gestoppt (erzwungen)",
+    "Could not stop AdGuard – process may still be running":
+        "AdGuard konnte nicht gestoppt werden – Prozess läuft möglicherweise noch.",
 
     # ── main.py ───────────────────────────────────────────────────────────
     "System tray not available":
@@ -667,6 +700,8 @@ _DE: dict[str, str] = {
         "URL muss mit http:// oder https:// beginnen",
     "Log level and CLI path changes apply after a restart.":
         "Log-Level und CLI-Pfad werden nach einem Neustart wirksam.",
+    "<small>Log level and CLI path changes apply after a restart.</small>":
+        "<small>Log-Level und CLI-Pfad werden nach einem Neustart wirksam.</small>",
     "adguard-cli path does not exist or is not executable.":
         "adguard-cli-Pfad existiert nicht oder ist nicht ausführbar.",
     "That binary does not identify as adguard-cli. Save anyway?":
@@ -683,10 +718,677 @@ _DE: dict[str, str] = {
     "Invalid channel: {}":              "Ungültiger Channel: {}",
 }
 
+# ── Simplified Chinese translations ──────────────────────────────────────
+
+_ZH_CN: dict[str, str] = {
+    # ── General ─────────────────────────────────────────────────────
+    "Language":                          "语言",
+    "English":                           "英语",
+    "Simplified Chinese":                "简体中文",
+    "German":                            "德语",
+    "Requires application restart to take effect.":
+        "需要重启应用程序才能生效。",
+    "<small>Requires application restart to take effect.</small>":
+        "<small>需要重启应用程序才能生效。</small>",
+
+    # ── tray.py – status labels ───────────────────────────────────────────
+    "Active – Protection running":          "已激活 – 保护运行中",
+    "Inactive – Protection stopped":        "未激活 – 保护已停止",
+    "Error retrieving status":              "获取状态出错",
+    "adguard-cli not found":                "未找到 adguard-cli",
+    "Unknown status":                       "未知状态",
+    "Checking status…":                     "正在检查状态…",
+
+    # ── tray.py – menu items ──────────────────────────────────────────────
+    "Toggle":                               "切换",
+    "Enable":                               "启用",
+    "Disable":                              "禁用",
+    "Restart":                              "重启",
+    "Filters":                              "过滤器",
+    "Loading…":                             "加载中…",
+    "Manage filters…":                      "管理过滤器…",
+    "No userscripts installed":             "未安装用户脚本",
+    "Manage userscripts…":                  "管理用户脚本…",
+    "Refresh status":                       "刷新状态",
+    "Settings…":                            "设置…",
+    "Autostart on login":                   "登录时自动启动",
+    "Quit":                                 "退出",
+
+    # ── tray.py – tooltips & notifications ────────────────────────────────
+    "active":                               "已激活",
+    "inactive":                             "未激活",
+    "System-wide filtering: {}":            "系统范围过滤：{}",
+    "Error: {}":                            "错误：{}",
+    "AdGuard Tray – Error":                 "AdGuard Tray – 错误",
+    "AdGuard is now active – protection running.":
+        "AdGuard 现已激活 – 保护运行中。",
+    "AdGuard has been stopped.":
+        "AdGuard 已停止。",
+    "Could not retrieve status.":
+        "无法获取状态。",
+    "Command failed":                       "命令失败",
+
+    # ── settings_dialog.py ────────────────────────────────────────────────
+    "AdGuard Tray – Settings":              "AdGuard Tray – 设置",
+    "Status Refresh":                       "状态刷新",
+    " seconds":                             " 秒",
+    "How often adguard-cli status is checked automatically.":
+        "自动检查 adguard-cli 状态的频率。",
+    "Interval:":                            "间隔：",
+    "Log level:":                           "日志级别：",
+    "adguard-cli path:":                    "adguard-cli 路径：",
+    "auto-detect via PATH":                 "通过 PATH 自动检测",
+    "Browse…":                              "浏览…",
+    "Select adguard-cli binary":            "选择 adguard-cli 二进制文件",
+    "Notifications":                        "通知",
+    "Desktop notification on status change":
+        "状态变更时显示桌面通知",
+    "<small>Requires <i>libnotify</i> / <i>notify-send</i> or an "
+    "active notification service (dunst, mako, KDE).</small>":
+        "<small>需要 <i>libnotify</i> / <i>notify-send</i> 或活动的 "
+        "通知服务（dunst、mako、KDE）。</small>",
+    "Autostart":                            "自动启动",
+    "Start automatically on desktop login (XDG Autostart)":
+        "桌面登录时自动启动（XDG 自动启动）",
+    "<small>Creates <i>~/.config/autostart/adguard-tray.desktop</i>.<br>"
+    "Works on KDE Plasma, GNOME, Hyprland (with xdg-autostart-impl) "
+    "and other XDG-compliant environments.</small>":
+        "<small>创建 <i>~/.config/autostart/adguard-tray.desktop</i>。<br>"
+        "适用于 KDE Plasma、GNOME、Hyprland（使用 xdg-autostart-impl）"
+        "和其他兼容 XDG 的环境。</small>",
+
+    # ── filters_dialog.py ─────────────────────────────────────────────────
+    "AdGuard Tray – Manage Filters":        "AdGuard Tray – 管理过滤器",
+    "Update filters":                       "更新过滤器",
+    "Updates all filters, DNS filters, userscripts,\n"
+    "SafebrowsingV2, CRLite and checks for app updates.":
+        "更新所有过滤器、DNS 过滤器、用户脚本，\n"
+        "SafebrowsingV2、CRLite 并检查应用更新。",
+    "Add custom filter…":                   "添加自定义过滤器…",
+    "Install custom filter by URL":         "通过 URL 安装自定义过滤器",
+    "↺ Reload":                             "↺ 重新加载",
+    "Loading filters…":                     "正在加载过滤器…",
+    "No filters found.":                    "未找到过滤器。",
+    "{} of {} filters active":              "{} / {} 个过滤器已激活",
+    "Filter":                               "过滤器",
+    "ID":                                   "ID",
+    "Last updated":                         "上次更新",
+    "Enabling filter {}…":                  "正在启用过滤器 {}…",
+    "Disabling filter {}…":                 "正在禁用过滤器 {}…",
+    "Filter {} enabled.":                   "过滤器 {} 已启用。",
+    "Filter {} disabled.":                  "过滤器 {} 已禁用。",
+    "Updating filters…":                    "正在更新过滤器…",
+    "Updating filters… (can take up to 2 minutes)":
+        "正在更新过滤器…（可能需要最多 2 分钟）",
+    "Update completed.":                    "更新完成。",
+    "Update failed.":                       "更新失败。",
+    "Add Custom Filter":                    "添加自定义过滤器",
+    "Filter URL (direct .txt URL of the filter list):":
+        "过滤器 URL（过滤器列表的直接 .txt URL）：",
+    "Installing: {}":                       "正在安装：{}",
+    "Filter installed.":                    "过滤器已安装。",
+    "Remove":                               "移除",
+    "Remove filter":                        "移除过滤器",
+    'Really remove filter "{}"?':           "确定要移除过滤器 “{}” 吗？",
+    "Removing filter {}…":                  "正在移除过滤器 {}…",
+    "Filter {} removed.":                   "过滤器 {} 已移除。",
+
+    # ── userscripts_dialog.py ─────────────────────────────────────────────
+    "AdGuard Tray – Userscripts":           "AdGuard Tray – 用户脚本",
+    "Install (URL)…":                       "安装（URL）…",
+    "Install userscript from a direct .js URL":
+        "从直接的 .js URL 安装用户脚本",
+    "Userscript":                           "用户脚本",
+    "ID / Name":                            "ID / 名称",
+    "<small>Right-click a userscript to remove it.<br>"
+    "Userscripts are automatically updated when running "
+    "<i>Update filters</i>.</small>":
+        "<small>右键单击用户脚本以移除它。<br>"
+        "运行 <i>更新过滤器</i> 时，用户脚本会自动更新。</small>",
+    "Loading userscripts…":                 "正在加载用户脚本…",
+    "No userscripts installed.":            "未安装用户脚本。",
+    "{} of {} userscripts active":          "{} / {} 个用户脚本已激活",
+    "Enabling userscript '{}'…":            "正在启用用户脚本 '{}'…",
+    "Disabling userscript '{}'…":           "正在禁用用户脚本 '{}'…",
+    "Userscript '{}' enabled.":             "用户脚本 '{}' 已启用。",
+    "Userscript '{}' disabled.":            "用户脚本 '{}' 已禁用。",
+    "Install Userscript":                   "安装用户脚本",
+    "Userscript URL (direct .js URL):":     "用户脚本 URL（直接 .js URL）：",
+    "Userscript installed.":                "用户脚本已安装。",
+    'Remove "{}"':                          "移除 “{}”",
+    "Remove userscript":                    "移除用户脚本",
+    'Really remove userscript "{}"?':       "确定要移除用户脚本 “{}” 吗？",
+    "Removing '{}'…":                       "正在移除 '{}'…",
+    "'{}' removed.":                        "'{}' 已移除。",
+
+    # ── cli.py ────────────────────────────────────────────────────────────
+    "adguard-cli was not found.\n"
+    "Install via official script or AUR:\n"
+    "  curl -fsSL https://raw.githubusercontent.com/AdguardTeam/AdGuardCLI/release/install.sh | sh -s -- -v\n"
+    "  paru -S adguard-cli-bin":
+        "未找到 adguard-cli。\n"
+        "通过官方脚本或 AUR 安装：\n"
+        "  curl -fsSL https://raw.githubusercontent.com/AdguardTeam/AdGuardCLI/release/install.sh | sh -s -- -v\n"
+        "  paru -S adguard-cli-bin",
+    "Unknown error retrieving status":
+        "获取状态时发生未知错误",
+    "AdGuard {} ok":                        "AdGuard {} 正常",
+    "AdGuard via systemctl {} ok":          "通过 systemctl 的 AdGuard {} 正常",
+    "'{}' failed – insufficient privileges?":
+        "'{}' 失败 – 权限不足？",
+    "Could not retrieve filter list":
+        "无法获取过滤器列表",
+    "Filter {} enabled":                    "过滤器 {} 已启用",
+    "Could not enable filter {}":           "无法启用过滤器 {}",
+    "Filter {} disabled":                   "过滤器 {} 已禁用",
+    "Could not disable filter {}":          "无法禁用过滤器 {}",
+    "Filter installed":                     "过滤器已安装",
+    "Installation failed":                  "安装失败",
+    "Filter {} removed":                    "过滤器 {} 已移除",
+    "Could not remove filter {}":          "无法移除过滤器 {}",
+    "Filters updated":                      "过滤器已更新",
+    "Update failed":                        "更新失败",
+    "Could not retrieve userscript list":
+        "无法获取用户脚本列表",
+    "Userscript '{}' enabled":              "用户脚本 '{}' 已启用",
+    "Could not enable userscript '{}'":
+        "无法启用用户脚本 '{}'",
+    "Userscript '{}' disabled":             "用户脚本 '{}' 已禁用",
+    "Could not disable userscript '{}'":
+        "无法禁用用户脚本 '{}'",
+    "Userscript '{}' removed":              "用户脚本 '{}' 已移除",
+    "Could not remove userscript '{}'":
+        "无法移除用户脚本 '{}'",
+    "Userscript installed":                 "用户脚本已安装",
+    "Other":                                "其他",
+
+    # ── search (filters_dialog / userscripts_dialog) ────────────────────
+    "Search filters…":                  "搜索过滤器…",
+    "Search userscripts…":              "搜索用户脚本…",
+
+    # ── proxy_config_dialog.py ───────────────────────────────────────────
+    "AdGuard CLI – Configuration":      "AdGuard CLI – 配置",
+    "Could not load proxy.yaml.\nPath: {}":
+        "无法加载 proxy.yaml。\n路径：{}",
+    "Proxy":                            "代理",
+    "HTTPS":                            "HTTPS",
+    "DNS":                              "DNS",
+    "Stealth Mode":                     "隐身模式",
+    "Apps":                             "应用",
+    "Security":                         "安全",
+    "<small><b>Note:</b> Changes require an AdGuard CLI restart to take effect.</small>":
+        "<small><b>注意：</b>更改需要重启 AdGuard CLI 才能生效。</small>",
+    "Proxy Mode":                       "代理模式",
+    "Mode:":                            "模式：",
+    "auto: AdGuard redirects app traffic into itself via iptables\n"
+    "manual: Only listens on the configured proxy ports (SOCKS5/HTTP)":
+        "auto：AdGuard 通过 iptables 将应用流量重定向到自身\n"
+        "manual：仅监听配置的代理端口（SOCKS5/HTTP）",
+    "Filtered ports:":                  "过滤的端口：",
+    "Port ranges intercepted in auto mode.\n"
+    "Format: 80:5221,5300:49151 (range) or 80,443,8080 (individual)\n"
+    "Only applies when proxy mode is 'auto'.":
+        "自动模式下拦截的端口范围。\n"
+        "格式：80:5221,5300:49151（范围）或 80,443,8080（单个）\n"
+        "仅适用于代理模式为 “auto” 时。",
+    "Manual Proxy Ports":               "手动代理端口",
+    "SOCKS5 port:":                     "SOCKS5 端口：",
+    "SOCKS5 proxy port for manual mode.\nSet to -1 to disable.":
+        "手动模式的 SOCKS5 代理端口。\n设置为 -1 以禁用。",
+    "HTTP port:":                       "HTTP 端口：",
+    "HTTP proxy port for manual mode.\nSet to -1 to disable.":
+        "手动模式的 HTTP 代理端口。\n设置为 -1 以禁用。",
+    "Listen address:":                  "监听地址：",
+    "Address the proxy listens on.\n"
+    "127.0.0.1 = local only. 0.0.0.0 = all interfaces (requires auth).":
+        "代理监听的地址。\n"
+        "127.0.0.1 = 仅本地。0.0.0.0 = 所有接口（需要身份验证）。",
+    "Worker threads:":                  "工作线程：",
+    "Number of proxy worker threads.":  "代理工作线程数量。",
+    "HTTPS Filtering":                  "HTTPS 过滤",
+    "Enable HTTPS filtering":           "启用 HTTPS 过滤",
+    "Decrypt and filter HTTPS traffic.\n"
+    "Needed to block ads on https sites.\n"
+    "Requires a trusted root certificate installed on the system.":
+        "解密并过滤 HTTPS 流量。\n"
+        "需要阻止 https 网站上的广告。\n"
+        "需要在系统上安装受信任的根证书。",
+    "Enable TLS 1.3":                   "启用 TLS 1.3",
+    "Enable TLS 1.3 support for filtered connections.":
+        "为过滤的连接启用 TLS 1.3 支持。",
+    "Filter HTTP/3 (QUIC) – experimental":
+        "过滤 HTTP/3 (QUIC) – 实验性",
+    "Filter HTTP/3 (QUIC) traffic.\nExperimental – may cause issues with some sites.":
+        "过滤 HTTP/3 (QUIC) 流量。\n实验性 – 可能会导致某些网站出现问题。",
+    "OCSP certificate checks":          "OCSP 证书检查",
+    "Check certificate revocation status via OCSP.\n"
+    "Slower but more secure.":
+        "通过 OCSP 检查证书撤销状态。\n"
+        "较慢但更安全。",
+    "Enforce Certificate Transparency": "强制证书透明度",
+    "Enforce Certificate Transparency timestamp checks.\n"
+    "Similar to Chrome's built-in CT policy.":
+        "强制证书透明度时间戳检查。\n"
+        "类似于 Chrome 的内置 CT 策略。",
+    "Filter EV certificate sites":      "过滤 EV 证书网站",
+    "By default, sites with Extended Validation certificates are not filtered.\n"
+    "Enable this to filter them as well (e.g. banking sites).":
+        "默认情况下，具有扩展验证证书的网站不会被过滤。\n"
+        "启用此选项以过滤它们（例如银行网站）。",
+    "Encrypted Client Hello (ECH)":     "加密客户端 Hello (ECH)",
+    "Enable ECH for better privacy.\nRequires DNS filtering to be enabled.":
+        "启用 ECH 以获得更好的隐私。\n需要启用 DNS 过滤。",
+    "Secure DNS Filtering":             "安全 DNS 过滤",
+    "off: No secure DNS filtering\n"
+    "transparent: Filter DoH/DoT inline without changing destination\n"
+    "redirect: Redirect all secure DNS to the local DNS proxy":
+        "off：无安全 DNS 过滤\n"
+        "transparent：内联过滤 DoH/DoT，无需更改目标\n"
+        "redirect：将所有安全 DNS 重定向到本地 DNS 代理",
+    "DNS Filtering":                    "DNS 过滤",
+    "Enable DNS filtering":             "启用 DNS 过滤",
+    "Filter DNS queries to block ads and trackers at the DNS level.\n"
+    "Uses a local DNS proxy with configurable upstreams.":
+        "过滤 DNS 查询以在 DNS 级别阻止广告和跟踪器。\n"
+        "使用具有可配置上游的本地 DNS 代理。",
+    "Upstream:":                        "上游：",
+    "DNS upstream server.\n'default' = system DNS\n"
+    "Examples: 1.1.1.1, https://dns.google/dns-query,\n"
+    "tls://dns.adguard.com, quic://dns.adguard.com":
+        "DNS 上游服务器。\n'default' = 系统 DNS\n"
+        "示例：1.1.1.1、https://dns.google/dns-query、\n"
+        "tls://dns.adguard.com、quic://dns.adguard.com",
+    "Fallbacks:":                       "后备：",
+    "Fallback DNS servers (used when primary upstream fails).\n"
+    "'default' = system DNS. Space-separated list.\n"
+    "Example: default 1.1.1.1":
+        "后备 DNS 服务器（当主上游失败时使用的）。\n"
+        "'default' = 系统 DNS。空格分隔的列表。\n"
+        "示例：default 1.1.1.1",
+    "Bootstraps:":                      "引导：",
+    "Bootstrap DNS for resolving upstream hostnames.\n"
+    "'default' = system DNS IPs. Only IP addresses allowed.\n"
+    "Example: default 8.8.8.8 tls://1.1.1.1":
+        "用于解析上游主机名的引导 DNS。\n"
+        "'default' = 系统 DNS IP。仅允许 IP 地址。\n"
+        "示例：default 8.8.8.8 tls://1.1.1.1",
+    "Block ECH in DNS":                 "在 DNS 中阻止 ECH",
+    "Remove ECH parameter from SVCB/HTTPS DNS records.\n"
+    "Enable only for browsers that don't auto-detect HTTPS filtering.":
+        "从 SVCB/HTTPS DNS 记录中移除 ECH 参数。\n"
+        "仅对无法自动检测 HTTPS 过滤的浏览器启用。",
+    "Stealth Mode (Tracking Protection)":
+        "隐身模式（跟踪保护）",
+    "Enable Stealth Mode":              "启用隐身模式",
+    "Master switch for all tracking protection features below.":
+        "以下所有跟踪保护功能的主开关。",
+    "Cookies":                          "Cookie",
+    "Block third-party cookies":        "阻止第三方 Cookie",
+    "Delete third-party cookies after a set time.\nPrevents cross-site tracking.":
+        "在设定的时间后删除第三方 Cookie。\n防止跨站点跟踪。",
+    "Lifetime (minutes):":              "生命周期（分钟）：",
+    "0 = block immediately. Default: 180 minutes.":
+        "0 = 立即阻止。默认：180 分钟。",
+    "Block first-party cookies":        "阻止第一方 Cookie",
+    "Delete all cookies (including first-party) after a set time.\n"
+    "Warning: this logs you out of every site.":
+        "在设定的时间后删除所有 Cookie（包括第一方）。\n"
+        "警告：这将使你从所有网站退出登录。",
+    "0 = block immediately. Default: 4320 minutes (3 days).":
+        "0 = 立即阻止。默认：4320 分钟（3 天）。",
+    "Privacy":                          "隐私",
+    "Hide / reduce User-Agent":         "隐藏 / 减少 User-Agent",
+    "Strips identifying bits from the User-Agent.\n"
+    "Reduces fingerprinting.":
+        "从 User-Agent 中移除标识位。\n"
+        "减少指纹识别。",
+    "Hide search queries in referrer":  "在引用页中隐藏搜索查询",
+    "Hides your search terms when clicking from a search engine to a website.":
+        "从搜索引擎点击到网站时隐藏你的搜索词。",
+    "Remove referrer from third-party requests":
+        "从第三方请求中移除引用页",
+    "Prevents third-party sites from knowing which page you came from.":
+        "防止第三方网站知道你来自哪个页面。",
+    "Send Do-Not-Track signal":         "发送 Do-Not-Track 信号",
+    "Sends DNT header with requests.\nNote: Most sites ignore this, but some respect it.":
+        "发送带有请求的 DNT 标头。\n注意：大多数网站会忽略此信号，但有些会尊重它。",
+    "Disable third-party ETag cache":   "禁用第三方 ETag 缓存",
+    "Prevents tracking via ETag caching in third-party content.":
+        "防止通过第三方内容中的 ETag 缓存进行跟踪。",
+    "Block third-party Authorization header":
+        "阻止第三方 Authorization 标头",
+    "Blocks the Authorization header in third-party requests to prevent tracking.":
+        "阻止第三方请求中的 Authorization 标头以防止跟踪。",
+    "Remove X-Client-Data header":      "移除 X-Client-Data 标头",
+    "Removes the X-Client-Data header sent by Chrome to Google services.":
+        "移除 Chrome 发送到 Google 服务的 X-Client-Data 标头。",
+    "Browser API Blocking":             "浏览器 API 阻止",
+    "Block WebRTC":                     "阻止 WebRTC",
+    "Prevents IP leaks via WebRTC.\nMay break video calls and some web apps.":
+        "防止通过 WebRTC 泄露 IP。\n可能会破坏视频通话和一些 Web 应用。",
+    "Block Push API":                   "阻止 Push API",
+    "Blocks browser push notifications from websites.":
+        "阻止来自网站的浏览器推送通知。",
+    "Block Location API":               "阻止位置 API",
+    "Prevents websites from accessing your GPS location.":
+        "防止网站访问你的 GPS 位置。",
+    "Block Flash":                      "阻止 Flash",
+    "Blocks the Flash plugin.":
+        "阻止 Flash 插件。",
+    "Block Java":                       "阻止 Java",
+    "Disables Java plugins. JavaScript remains enabled.":
+        "禁用 Java 插件。JavaScript 保持启用。",
+    "Anti-DPI":                         "Anti-DPI",
+    "Enable Anti-DPI":                  "启用 Anti-DPI",
+    "Alters outgoing packet data to bypass Deep Packet Inspection.\n"
+    "Useful in countries with internet censorship.":
+        "更改传出数据包以绕过深度数据包检测。\n"
+        "在存在互联网审查的国家/地区很有用。",
+    "App pattern":                      "应用模式",
+    "Action":                           "操作",
+    "Skip outbound proxy":              "跳过出站代理",
+    "default: Filter fully\n"
+    "bypass_https: Skip HTTPS filtering\n"
+    "bypass: Skip all filtering (games, anti-cheat)":
+        "default：完全过滤\n"
+        "bypass_https：跳过 HTTPS 过滤\n"
+        "bypass：跳过所有过滤（游戏、反作弊）",
+    "Don't route this app's traffic through outbound proxy":
+        "不要将此应用的流量通过出站代理路由",
+    "Browser list included from {}":    "浏览器列表从 {} 包含",
+    "+ Add rule":                        "+ 添加规则",
+    "Add a new app filter rule":        "添加新的应用过滤规则",
+    "− Remove selected":                "− 移除选中项",
+    "Remove the selected rule":         "移除选中的规则",
+    "↑ Move up":                        "↑ 上移",
+    "↓ Move down":                      "↓ 下移",
+    "Cannot remove":                    "无法移除",
+    "The browser include-list and wildcard (*) rule cannot be removed.":
+        "浏览器包含列表和通配符 (*) 规则无法移除。",
+    "Browsing Security":                "浏览安全",
+    "Enable Safe Browsing":             "启用安全浏览",
+    "Warns about malicious and phishing websites.\n"
+    "Uses AdGuard's Safe Browsing database.":
+        "警告恶意和钓鱼网站。\n"
+        "使用 AdGuard 的安全浏览数据库。",
+    "Send anonymous statistics":        "发送匿名统计信息",
+    "Send anonymous lookups to AdGuard.":
+        "向 AdGuard 发送匿名查询。",
+    "CRLite":                           "CRLite",
+    "Enable CRLite":                    "启用 CRLite",
+    "Certificate revocation checking using Mozilla's CRLite.\n"
+    "Faster and more reliable than traditional CRL/OCSP checks.":
+        "使用 Mozilla 的 CRLite 进行证书撤销检查。\n"
+        "比传统的 CRL/OCSP 检查更快、更可靠。",
+    "Content Filtering":                "内容过滤",
+    "Enable ad blocking":               "启用广告拦截",
+    "Apply ad-blocking filter rules to HTTP/HTTPS requests.":
+        "将广告拦截过滤规则应用于 HTTP/HTTPS 请求。",
+    "Save failed":                      "保存失败",
+    "Could not save proxy.yaml:\n{}":   "无法保存 proxy.yaml：\n{}",
+    "Configuration saved. Restart AdGuard to apply changes.":
+        "配置已保存。重启 AdGuard 以应用更改。",
+    "Restarting AdGuard…":              "正在重启 AdGuard…",
+    "AdGuard restarted.":               "AdGuard 已重启。",
+    "Restart failed: {}":               "重启失败：{}",
+    "Unknown error":                    "未知错误",
+    "AdGuard Configuration…":           "AdGuard 配置…",
+    "<b>App filter rules</b> (auto mode only)<br>"
+    "<small>"
+    "<b>default</b> – filter this app fully<br>"
+    "<b>bypass_https</b> – no HTTPS filtering for this app<br>"
+    "<b>bypass</b> – no filtering at all (use for games with anti-cheat)<br><br>"
+    "Wildcard patterns supported (e.g. <code>*steam*</code>, <code>*EasyAntiCheat*</code>).<br>"
+    "Rules are evaluated top to bottom – first match wins.<br>"
+    "The wildcard <code>*</code> rule should always be last."
+    "</small>":
+        "<b>应用过滤规则</b>（仅自动模式）<br>"
+        "<small>"
+        "<b>default</b> – 完全过滤此应用<br>"
+        "<b>bypass_https</b> – 此应用不进行 HTTPS 过滤<br>"
+        "<b>bypass</b> – 完全不过滤（用于带有反作弊的游戏）<br><br>"
+        "支持通配符模式（例如 <code>*steam*</code>、<code>*EasyAntiCheat*</code>）。<br>"
+        "规则从上到下评估 – 第一个匹配项生效。<br>"
+        "通配符 <code>*</code> 规则应始终在最后。"
+        "</small>",
+
+    # ── exceptions_dialog.py ────────────────────────────────────────────
+    "Website Exceptions…":              "网站例外…",
+    "AdGuard Tray – Website Exceptions":
+        "AdGuard Tray – 网站例外",
+    "<small>Websites listed here will not have ads or trackers blocked.<br>"
+    "Enter a domain (e.g. <code>example.com</code>) without <code>https://</code>.</small>":
+        "<small>此处列出的网站将不会阻止广告或跟踪器。<br>"
+        "输入域名（例如 <code>example.com</code>）不带 <code>https://</code>。</small>",
+    "example.com":                      "example.com",
+    "Add":                              "添加",
+    "Search exceptions…":               "搜索例外…",
+    "Remove selected":                  "移除选中项",
+    "1 exception":                      "1 个例外",
+    "{} exceptions":                    "{} 个例外",
+    "Invalid domain":                   "无效域名",
+    "Invalid URL":                      "无效 URL",
+    "'{}' is not a valid domain or IP address.":
+        "'{}' 不是有效的域名或 IP 地址。",
+    "'{}' is already in the list.":     "'{}' 已在列表中。",
+    "Could not save exceptions:\n{}":
+        "无法保存例外：\n{}",
+
+    # ── manager_window.py ──────────────────────────────────────────────────
+    "AdGuard Tray – Manager":           "AdGuard Tray – 管理器",
+    "Overview":                         "概览",
+    "DNS Filters":                      "DNS 过滤器",
+    "Userscripts":                      "用户脚本",
+    "Exceptions":                       "例外",
+    "Configuration":                    "配置",
+    "Diagnostics":                      "诊断",
+
+    # ── overview_tab.py ──────────────────────────────────────────────────
+    "Status":                           "状态",
+    "↺ Refresh":                        "↺ 刷新",
+    "Version & License":                "版本和许可证",
+    "Check for CLI update":             "检查 CLI 更新",
+    "Reset license":                    "重置许可证",
+    "HTTPS Certificate":                "HTTPS 证书",
+    "Generate a root CA certificate for HTTPS filtering. "
+    "The certificate must be installed and trusted on your system.":
+        "生成用于 HTTPS 过滤的根 CA 证书。"
+        "证书必须在你的系统上安装并受信任。",
+    "Generate certificate":             "生成证书",
+    "Checking for updates…":            "正在检查更新…",
+    "Are you sure you want to reset the AdGuard license?":
+        "你确定要重置 AdGuard 许可证吗？",
+    "Generating certificate…":          "正在生成证书…",
+    "Firefox profile:":                 "Firefox 配置文件：",
+    "(optional) e.g. abcd1234.MyProfile":
+        "（可选）例如 abcd1234.MyProfile",
+    "License: {}":                      "许可证：{}",
+    "Could not retrieve":               "无法获取",
+
+    # ── filters_tab.py ───────────────────────────────────────────────────
+    "Add by ID…":                       "按 ID 添加…",
+    "Add internal filter by ID or name":
+        "按 ID 或名称添加内部过滤器",
+    "Show all available":               "显示所有可用项",
+    "Show all available filters, not just installed ones":
+        "显示所有可用的过滤器，不仅仅是已安装的",
+    "Add Filter by ID":                 "按 ID 添加过滤器",
+    "Enter filter ID or name:":         "输入过滤器 ID 或名称：",
+    "Adding filter: {}":                "正在添加过滤器：{}",
+    "Filter added.":                    "过滤器已添加。",
+    "Rename…":                          "重命名…",
+    "Set trusted":                      "设为受信任",
+    "Set untrusted":                    "设为不受信任",
+    "Rename filter":                    "重命名过滤器",
+    "New title:":                       "新标题：",
+    "Renaming filter {}…":              "正在重命名过滤器 {}…",
+    "Filter renamed.":                  "过滤器已重命名。",
+    "trusted":                          "受信任",
+    "untrusted":                        "不受信任",
+    "Setting filter {} as {}…":         "正在将过滤器 {} 设为 {}…",
+    "Filter trust updated.":            "过滤器信任已更新。",
+    "Filter URL:":                      "过滤器 URL：",
+    "Title:":                           "标题：",
+    "(optional)":                       "（可选）",
+    "Trusted filter":                   "受信任的过滤器",
+    "Trusted filters can use advanced rules (JS scriptlets, etc.)":
+        "受信任的过滤器可以使用高级规则（JS scriptlets 等）",
+
+    # ── dns_filters_tab.py ───────────────────────────────────────────────
+    "Add custom DNS filter…":           "添加自定义 DNS 过滤器…",
+    "Search DNS filters…":              "搜索 DNS 过滤器…",
+    "DNS filters block domains at the DNS level. "
+    "Requires DNS filtering to be enabled in Configuration → DNS.":
+        "DNS 过滤器在 DNS 级别阻止域名。"
+        "需要在配置 → DNS 中启用 DNS 过滤。",
+    "Loading DNS filters…":             "正在加载 DNS 过滤器…",
+    "No DNS filters found.":            "未找到 DNS 过滤器。",
+    "{} of {} DNS filters active":      "{} / {} 个 DNS 过滤器已激活",
+    "DNS filter {} enabled.":           "DNS 过滤器 {} 已启用。",
+    "DNS filter {} disabled.":          "DNS 过滤器 {} 已禁用。",
+    "DNS filter installed.":            "DNS 过滤器已安装。",
+    "Add DNS Filter by ID":             "按 ID 添加 DNS 过滤器",
+    "Adding DNS filter: {}":            "正在添加 DNS 过滤器：{}",
+    "DNS filter added.":                "DNS 过滤器已添加。",
+    "Remove DNS filter":                "移除 DNS 过滤器",
+    'Really remove DNS filter "{}"?':   "确定要移除 DNS 过滤器 “{}” 吗？",
+    "DNS filter {} removed.":           "DNS 过滤器 {} 已移除。",
+    "Rename DNS filter":                "重命名 DNS 过滤器",
+    "DNS filter renamed.":              "DNS 过滤器已重命名。",
+    "Add Custom DNS Filter":            "添加自定义 DNS 过滤器",
+
+    # ── config_tab.py ────────────────────────────────────────────────────
+    "Could not load proxy.yaml.":       "无法加载 proxy.yaml。",
+    "Edit the full AdGuard CLI configuration (proxy.yaml).":
+        "编辑完整的 AdGuard CLI 配置 (proxy.yaml)。",
+    "<small>Edit the full AdGuard CLI configuration (proxy.yaml).</small>":
+        "<small>编辑完整的 AdGuard CLI 配置 (proxy.yaml)。</small>",
+    "Open Configuration Editor…":       "打开配置编辑器…",
+
+    # ── diagnostics_tab.py ───────────────────────────────────────────────
+    "Export & Import":                  "导出和导入",
+    "Export logs…":                     "导出日志…",
+    "Export AdGuard CLI logs to a zip file":
+        "将 AdGuard CLI 日志导出到 zip 文件",
+    "Export settings…":                 "导出设置…",
+    "Export all AdGuard CLI settings to a zip file":
+        "将所有 AdGuard CLI 设置导出到 zip 文件",
+    "Import settings…":                 "导入设置…",
+    "Import settings from a previously exported zip file":
+        "从先前导出的 zip 文件导入设置",
+    "Performance Benchmark":            "性能基准测试",
+    "Run a cryptographic and HTTPS filtering benchmark.":
+        "运行加密和 HTTPS 过滤基准测试。",
+    "Run benchmark":                    "运行基准测试",
+    "Running benchmark…":               "正在运行基准测试…",
+    "Done.":                            "完成。",
+    "Failed.":                          "失败。",
+    "Export logs to…":                  "导出日志到…",
+    "Exporting logs…":                  "正在导出日志…",
+    "Export settings to…":              "导出设置到…",
+    "Exporting settings…":              "正在导出设置…",
+    "Import settings from…":            "从…导入设置",
+    "Zip files (*.zip);;All files (*)":
+        "Zip 文件 (*.zip);;所有文件 (*)",
+    "Importing settings…":              "正在导入设置…",
+    "Application Log":                  "应用程序日志",
+    "View recent log entries":          "查看最近的日志条目",
+    "Log file not found.":              "未找到日志文件。",
+
+    # ── cli.py (new methods) ─────────────────────────────────────────────
+    "Could not retrieve DNS filter list":
+        "无法获取 DNS 过滤器列表",
+    "DNS filter {} enabled":            "DNS 过滤器 {} 已启用",
+    "Could not enable DNS filter {}":   "无法启用 DNS 过滤器 {}",
+    "DNS filter {} disabled":           "DNS 过滤器 {} 已禁用",
+    "Could not disable DNS filter {}":  "无法禁用 DNS 过滤器 {}",
+    "DNS filter installed":             "DNS 过滤器已安装",
+    "DNS filter {} removed":            "DNS 过滤器 {} 已移除",
+    "Could not remove DNS filter {}":   "无法移除 DNS 过滤器 {}",
+    "DNS filter added":                 "DNS 过滤器已添加",
+    "Could not add DNS filter":         "无法添加 DNS 过滤器",
+    "DNS filter title updated":         "DNS 过滤器标题已更新",
+    "Could not set DNS filter title":   "无法设置 DNS 过滤器标题",
+    "Filter added":                     "过滤器已添加",
+    "Could not add filter":             "无法添加过滤器",
+    "Filter trust updated":             "过滤器信任已更新",
+    "Could not update filter trust":    "无法更新过滤器信任",
+    "Filter title updated":             "过滤器标题已更新",
+    "Could not set filter title":       "无法设置过滤器标题",
+    "License reset":                    "许可证已重置",
+    "Could not reset license":          "无法重置许可证",
+    "Could not retrieve license info":  "无法获取许可证信息",
+    "Certificate generated":            "证书已生成",
+    "Certificate generation failed":    "证书生成失败",
+    "Logs exported":                    "日志已导出",
+    "Log export failed":                "日志导出失败",
+    "Settings exported":                "设置已导出",
+    "Settings export failed":           "设置导出失败",
+    "Settings imported":                "设置已导入",
+    "Settings import failed":           "设置导入失败",
+    "Update check completed":           "更新检查完成",
+    "Update check failed":              "更新检查失败",
+    "Benchmark failed":                 "基准测试失败",
+    "Open Manager…":                    "打开管理器…",
+    "AdGuard stopped (forced)":         "AdGuard 已停止（强制）",
+    "Could not stop AdGuard – process may still be running":
+        "无法停止 AdGuard – 进程可能仍在运行",
+
+    # ── main.py ───────────────────────────────────────────────────────────
+    "System tray not available":
+        "系统托盘不可用",
+    "The system tray is not available in this desktop environment.\n\n"
+    "On Hyprland: waybar with the [tray] module enabled or sfwbar is required.\n"
+    "On KDE Plasma it should just work.":
+        "此桌面环境中不可用系统托盘。\n\n"
+        "在 Hyprland 上：需要启用 [tray] 模块的 waybar 或 sfwbar。\n"
+        "在 KDE Plasma 上应该可以正常工作。",
+    "adguard-cli could not be found on this system.\n\n"
+    "Recommended install method (official):\n"
+    "  curl -fsSL https://raw.githubusercontent.com/AdguardTeam/AdGuardCLI/release/install.sh | sh -s -- -v\n\n"
+    "Alternative (Arch Linux AUR):\n"
+    "  paru -S adguard-cli-bin\n\n"
+    "Tray loads, but start/stop won't work until adguard-cli is installed.":
+        "在此系统上未找到 adguard-cli。\n\n"
+        "推荐的安装方法（官方）：\n"
+        "  curl -fsSL https://raw.githubusercontent.com/AdguardTeam/AdGuardCLI/release/install.sh | sh -s -- -v\n\n"
+        "替代方法（Arch Linux AUR）：\n"
+        "  paru -S adguard-cli-bin\n\n"
+        "托盘会加载，但在安装 adguard-cli 之前，启动/停止将不起作用。",
+    "Copy install command":             "复制安装命令",
+    "Continue":                         "继续",
+    "AdGuard Tray is already running":  "AdGuard Tray 已在运行",
+    "Only one instance can run at a time. Check your system tray.":
+        "一次只能运行一个实例。请检查你的系统托盘。",
+    "Authentication cancelled":         "身份验证已取消",
+    "polkit helper missing":            "缺少 polkit 助手",
+    "URL must start with http:// or https://":
+        "URL 必须以 http:// 或 https:// 开头",
+    "Log level and CLI path changes apply after a restart.":
+        "日志级别和 CLI 路径更改在重启后生效。",
+    "<small>Log level and CLI path changes apply after a restart.</small>":
+        "<small>日志级别和 CLI 路径更改在重启后生效。</small>",
+    "adguard-cli path does not exist or is not executable.":
+        "adguard-cli 路径不存在或不可执行。",
+    "That binary does not identify as adguard-cli. Save anyway?":
+        "该二进制文件未标识为 adguard-cli。仍然保存吗？",
+    "Update channel":                   "更新通道",
+    "Channel:":                         "通道：",
+    "<small>Controls which AdGuard CLI build <i>Check for CLI update</i> "
+    "will pull. Changes take effect on the next update run.</small>":
+        "<small>控制 <i>检查 CLI 更新</i> 将拉取哪个 AdGuard CLI 构建。"
+        "更改在下次更新运行时生效。</small>",
+    "Switching update channel to {}…":  "正在将更新通道切换到 {}…",
+    "Update channel set to {}":         "更新通道已设置为 {}",
+    "Could not set update channel":     "无法设置更新通道",
+    "Invalid channel: {}":              "无效通道：{}",
+}
+
 # ── Translation registry ──────────────────────────────────────────────────
 
 _TRANSLATIONS: dict[str, dict[str, str]] = {
     "de": _DE,
+    "zh": _ZH_CN,  # Simplified Chinese (zh_CN, zh_SG, etc.)
 }
 
 _CURRENT: dict[str, str] = _TRANSLATIONS.get(_LANG, {})
